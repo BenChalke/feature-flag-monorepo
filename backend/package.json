@@ -1,0 +1,19 @@
+{
+  "name": "flags-backend",
+  "version": "1.0.0",
+  "description": "Serverless Lambda + DynamoDB back-end for Feature Flags",
+  "main": "handler.js",
+  "scripts": {
+    "deploy": "serverless deploy",
+    "remove": "serverless remove"
+  },
+  "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.293.0",
+    "@aws-sdk/client-dynamodb": "^3.293.0",
+    "@aws-sdk/lib-dynamodb": "^3.293.0"
+  },
+  "devDependencies": {
+    "serverless": "^3.30.0",
+    "serverless-offline": "^12.0.0"
+  }
+}

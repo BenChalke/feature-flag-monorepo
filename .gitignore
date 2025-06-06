@@ -1,0 +1,86 @@
+# ====================
+# Gitignore for Feature-Flags Monorepo
+# ====================
+
+# 1) Node modules (both frontend and backend)
+old-frontend
+node_modules/
+**/node_modules/
+
+# 2) Build outputs / caches
+# Frontend (Vite)
+dist/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Backend (Serverless / Lambda)
+.serverless/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# 3) Environment files (API keys, secrets, local overrides)
+.env
+.env.local
+.env.*.local
+.env.*.development.local
+.env.*.production.local
+.env.*.test.local
+
+# 4) MacOS / OS-specific
+.DS_Store
+Thumbs.db
+
+# 5) IDE / editor settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.code-workspace
+
+# 6) Logs and debug outputs
+logs/
+*.log
+*.err
+*.out
+
+# 7) Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# 8) Yarn / pnpm lockfiles (if not using them consistently)
+# (Uncomment one of the below if you exclusively use npm or pnpm)
+# yarn.lock
+# pnpm-lock.yaml
+
+# 9) Coverage reports (if you add tests later)
+coverage/
+.jest/
+
+# 10) Serverless-Offline local state (if using)
+.offline/
+
+# 11) ESLint cache
+.eslintcache
+
+# 12) Tailwind artifacts (if any)
+*.cache/
+tailwind.config.js.tmp
+
+# 13) Miscellaneous system files
+*.DS_Store
+*.vscode
+/.idea/
+
+# 14) VSCode ESLint plugin file
+.vscode/
+
+# ignore AWS CLI installer
+AWSCLIV2.pkg
