@@ -1,29 +1,46 @@
-// src/components/FlagRow.jsx
+import React from "react";
 import { Switch } from "@headlessui/react";
 
-export default function FlagRow({ flag, onToggle, onRequestDelete }) {
-  // 1) Toggle handler (unchanged)
-  const handleChange = async () => {
+export default function FlagRow({
+  flag,
+  onToggle,
+  onRequestDelete,
+  onRowClick,
+}) {
+  const handleToggle = async (e) => {
+    e.stopPropagation();
     await onToggle(flag.id, flag.enabled);
   };
 
-  // 2) Instead of deleting immediately, call onRequestDelete(flag)
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
     onRequestDelete(flag);
   };
 
   return (
-    <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-      {/* Flag Name */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+    <tr
+      className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+      onClick={() => onRowClick(flag)}
+    >
+      {/* 
+        Name cell:
+          - Always visible 
+          - Truncate if overflow 
+          - At ≤450px, width is 50% via colgroup; at ≥451px, auto.
+      */}
+      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 truncate">
         {flag.name}
       </td>
 
-      {/* Status Toggle */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm">
+      {/* 
+        Status cell:
+          - Hidden ≤450px 
+          - Visible & auto‐sized ≥451px 
+      */}
+      <td className="px-4 py-3 text-sm max-[450px]:hidden">
         <Switch
           checked={flag.enabled}
-          onChange={handleChange}
+          onChange={handleToggle}
           className={`${
             flag.enabled ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-600"
           } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
@@ -36,8 +53,13 @@ export default function FlagRow({ flag, onToggle, onRequestDelete }) {
         </Switch>
       </td>
 
-      {/* Created At */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+      {/* 
+        Created At cell:
+          - Always visible 
+          - Wrap at ≤450px (via whitespace-normal) 
+          - Auto-size ≥451px 
+      */}
+      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-[450px]:whitespace-normal whitespace-nowrap">
         {new Date(flag.created_at).toLocaleDateString("en-US", {
           year: "numeric",
           month: "short",
@@ -45,8 +67,12 @@ export default function FlagRow({ flag, onToggle, onRequestDelete }) {
         })}
       </td>
 
-      {/* Delete Icon */}
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+      {/* 
+        Delete cell:
+          - Hidden ≤450px 
+          - Visible & auto‐sized ≥451px 
+      */}
+      <td className="px-4 py-3 text-right text-sm max-[450px]:hidden">
         <button
           onClick={handleDeleteClick}
           className="text-gray-400 hover:text-red-600 focus:outline-none"
@@ -63,7 +89,7 @@ export default function FlagRow({ flag, onToggle, onRequestDelete }) {
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M6 7h12M9 7v-1a2 2 0 00-2-2H7a2 2 0 00-2 2v1m4 0v12m4-12v12m4-12v12M5 7h14l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 7z"
+              d="M6 7h12M9 7v-1a2 2 0 00-2-2H7a2 2 0 00-2 2v1m4 0v12m4-12v12m4-12v12M5 7h14l-1 14a2 2 0 01-2 2H8a2 2 0 01-2 2L5 7z"
             />
           </svg>
         </button>

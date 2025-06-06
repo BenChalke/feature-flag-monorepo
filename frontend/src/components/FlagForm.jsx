@@ -1,5 +1,3 @@
-// src/components/FlagForm.jsx
-
 import { useState } from "react";
 
 export default function FlagForm({ initialEnv, onClose, onCreated }) {
@@ -37,12 +35,14 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6 shadow-lg">
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-sm mx-4 sm:mx-0 p-6 shadow-lg">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Create Feature Flag</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            Create Feature Flag
+          </h3>
           <button
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xl"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xl transition-colors"
             aria-label="Close"
           >
             &times;
@@ -51,7 +51,10 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name Field */}
           <div>
-            <label htmlFor="flagName" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor="flagName"
+              className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+            >
               Name
             </label>
             <input
@@ -65,7 +68,10 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
 
           {/* Environment Dropdown */}
           <div>
-            <label htmlFor="environment" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor="environment"
+              className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+            >
               Environment
             </label>
             <select
@@ -82,18 +88,18 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-600"
+              className="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? "Creating…" : "Create"}
             </button>
