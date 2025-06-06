@@ -190,17 +190,27 @@ export default function App() {
 
       {/* Table + Create Button */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-        <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 sm:mb-0">
-            {currentEnv} Flags
-          </h2>
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-          >
-            + Create Flag
-          </button>
-        </div>
+        <div className="p-4 sm:p-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+          {currentEnv} Flags
+        </h2>
+        <button
+          onClick={() => setShowForm(true)}
+          className="
+            relative inline-flex items-center justify-center
+            bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors focus:outline-none
+
+            /* default: enough padding for “+ Create Flag” */
+            px-4 py-2
+
+            /* ≤400px: fix to 32×32 and remove padding */
+            max-[400px]:w-8 max-[400px]:h-8 max-[400px]:px-0 max-[400px]:py-0
+          "
+        >
+          <span className="inline max-[400px]:hidden">+ Create Flag</span>
+          <span className="hidden max-[400px]:inline text-lg leading-none">+</span>
+        </button>
+      </div>
 
         <FlagTable
           flags={sortedFlags}

@@ -1,12 +1,33 @@
 // src/components/MobileFlagModal.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Switch } from "@headlessui/react";
 
 export default function MobileFlagModal({ flag, onClose, onToggle, onDelete }) {
+  // 1) Local `enabled` state, initialized from `flag.enabled`.
+  const [enabled, setEnabled] = useState(flag?.enabled ?? false);
+
+  // 2) Whenever `flag.enabled` changes from the parent, sync it into local `enabled`.
+  useEffect(() => {
+    if (flag) {
+      setEnabled(flag.enabled);
+    }
+  }, [flag?.enabled]);
+
   if (!flag) return null;
 
+  // 3) When user clicks the switch, flip local state immediately (optimistic) 
+  //    then call `onToggle` to let parent/DB know.
   const handleToggle = async () => {
-    await onToggle(flag.id, flag.enabled);
+    const newValue = !enabled;
+    setEnabled(newValue);
+    try {
+      await onToggle(flag.id, newValue);
+      // parent should eventually re‐fetch and ensure this flag really toggled.
+    } catch (err) {
+      // If it fails, revert local state so UI stays correct.
+      setEnabled(enabled);
+      console.error("Failed to toggle flag:", err);
+    }
   };
 
   const handleDelete = async () => {
@@ -14,7 +35,6 @@ export default function MobileFlagModal({ flag, onClose, onToggle, onDelete }) {
   };
 
   return (
-    // Semi-transparent dark backdrop
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-xs mx-4 p-6 shadow-lg">
         {/* Header */}
@@ -49,16 +69,20 @@ export default function MobileFlagModal({ flag, onClose, onToggle, onDelete }) {
             Status:
           </span>
           <Switch
-            checked={flag.enabled}
+            checked={enabled}
             onChange={handleToggle}
-            className={`${
-              flag.enabled ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-600"
-            } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
+            className={`
+              ${enabled ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-600"}
+              relative inline-flex h-6 w-11 items-center rounded-full
+              transition-colors focus:outline-none
+            `}
           >
             <span
-              className={`${
-                flag.enabled ? "translate-x-6" : "translate-x-1"
-              } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+              className={`
+                ${enabled ? "translate-x-6" : "translate-x-1"}
+                inline-block h-4 w-4 transform rounded-full bg-white
+                transition-transform
+              `}
             />
           </Switch>
         </div>

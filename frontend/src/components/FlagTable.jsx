@@ -1,3 +1,4 @@
+// src/components/FlagTable.jsx
 import React from "react";
 import FlagRow from "./FlagRow";
 
@@ -18,7 +19,7 @@ export default function FlagTable({
     );
   }
 
-  // Tiny ▲/▼ indicator next to the active sort column
+  // ▲/▼ indicator next to the active sort column
   const SortIcon = ({ field }) => {
     if (sortField !== field) return null;
     return (
@@ -30,10 +31,18 @@ export default function FlagTable({
 
   return (
     <div className="overflow-x-auto -mx-2 sm:-mx-0 px-2 sm:px-0">
-      <table className="w-full table-auto divide-y divide-gray-200 dark:divide-gray-700">
+      <table
+        className="
+          w-full 
+          table-auto 
+          divide-y divide-gray-200 dark:divide-gray-700 
+          border-l border-r border-b border-gray-200 dark:border-gray-700 
+          rounded-b-lg
+        "
+      >
         <thead className="bg-gray-50 dark:bg-gray-800">
           <tr>
-            {/* NAME column – sortable */}
+            {/* ─── NAME column ─────────────────────────────────────────────────── */}
             <th
               onClick={() => onSort("name")}
               className="
@@ -48,12 +57,12 @@ export default function FlagTable({
               <SortIcon field="name" />
             </th>
 
-            {/* STATUS column (hidden on ≤450px) */}
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider max-[450px]:hidden">
+            {/* ─── STATUS column ─────────────────────────────────────────────── */}
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Status
             </th>
 
-            {/* CREATED AT column – sortable */}
+            {/* ─── CREATED AT column (hidden ≤450px) ─────────────────────────── */}
             <th
               onClick={() => onSort("created_at")}
               className="
@@ -62,13 +71,14 @@ export default function FlagTable({
                 cursor-pointer select-none
                 hover:text-gray-700 dark:hover:text-gray-200
                 transition-colors
+                max-[450px]:hidden
               "
             >
               Created At
               <SortIcon field="created_at" />
             </th>
 
-            {/* DELETE column (hidden on ≤450px) */}
+            {/* ─── DELETE column (hidden ≤450px) ─────────────────────────────── */}
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider max-[450px]:hidden">
               {/* (no header text) */}
             </th>
