@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import FilterTabs from "./components/FilterTabs";
 import FlagTable from "./components/FlagTable";
@@ -11,10 +10,12 @@ export default function App() {
   const [flags, setFlags] = useState(null);
   const [error, setError] = useState(null);
   const [selectedTab, setSelectedTab] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [deletingFlag, setDeletingFlag] = useState(null);
   const [mobileSelectedFlag, setMobileSelectedFlag] = useState(null);
 
+  // 1) Fetch flags from the API
   const loadFlags = useCallback(async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_BASE}/flags`);
@@ -28,12 +29,15 @@ export default function App() {
     }
   }, []);
 
+  // 2) Listen for WebSocket events to re-fetch
   useAwsWebSocketFlags(loadFlags);
 
+  // 3) Initial load
   useEffect(() => {
     loadFlags();
   }, [loadFlags]);
 
+  // 4) Toggle a flag’s enabled state
   const handleToggle = useCallback(
     async (id, currentlyEnabled) => {
       try {
@@ -54,6 +58,7 @@ export default function App() {
     [loadFlags]
   );
 
+  // 5) Delete a flag
   const handleDelete = useCallback(
     async (id) => {
       try {
@@ -72,18 +77,19 @@ export default function App() {
     [loadFlags]
   );
 
+  // 6) When clicking the trash icon on desktop
   const handleRequestDelete = useCallback((flag) => {
     setDeletingFlag(flag);
   }, []);
 
+  // 7) When tapping a row on mobile (≤ 450px)
   const handleRowClick = useCallback((flag) => {
-    // Only open the mobile modal if viewport ≤450px.
     if (window.innerWidth <= 450) {
       setMobileSelectedFlag(flag);
     }
   }, []);
 
-  // Error / loading states
+  // 8) Error / Loading states
   if (error) {
     return <div className="text-red-500 p-6">Failed to load flags.</div>;
   }
@@ -91,14 +97,44 @@ export default function App() {
     return <div className="p-6">Loading…</div>;
   }
 
+  // 9) Only show flags matching the selected environment
   const envMap = { 0: "Production", 1: "Staging", 2: "Development" };
   const currentEnv = envMap[selectedTab];
-  const filtered = flags.filter((f) => f.environment === currentEnv);
+  const envFlags = flags.filter((f) => f.environment === currentEnv);
+
+  // 10) Further filter by search query (case‐insensitive substring match on name)
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredFlags = normalizedQuery
+    ? envFlags.filter((f) => f.name.toLowerCase().includes(normalizedQuery))
+    : envFlags;
 
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-0 space-y-6">
+      {/* Tabs */}
       <FilterTabs selected={selectedTab} onSelect={setSelectedTab} />
 
+      {/* Search bar */}
+      <div className="flex justify-end px-2 sm:px-0">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search flags…"
+          className="
+            block w-full sm:w-1/3
+            px-3 py-2
+            border border-gray-300 dark:border-gray-700
+            rounded-md
+            bg-white dark:bg-gray-900
+            text-gray-900 dark:text-gray-100
+            placeholder-gray-500 dark:placeholder-gray-400
+            focus:outline-none focus:ring-2 focus:ring-blue-500
+            transition-colors
+          "
+        />
+      </div>
+
+      {/* Flag table */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 sm:mb-0">
@@ -113,13 +149,14 @@ export default function App() {
         </div>
 
         <FlagTable
-          flags={filtered}
+          flags={filteredFlags}
           onToggle={handleToggle}
           onRequestDelete={handleRequestDelete}
           onRowClick={handleRowClick}
         />
       </div>
 
+      {/* Create Flag Modal */}
       {showForm && (
         <FlagForm
           initialEnv={currentEnv}
@@ -131,6 +168,7 @@ export default function App() {
         />
       )}
 
+      {/* Desktop Delete Confirmation */}
       {deletingFlag && (
         <DeleteConfirm
           flagName={deletingFlag.name}
@@ -142,6 +180,7 @@ export default function App() {
         />
       )}
 
+      {/* Mobile‐only Flag Modal (toggle + delete) */}
       {mobileSelectedFlag && (
         <MobileFlagModal
           flag={mobileSelectedFlag}
