@@ -7,7 +7,7 @@ export default function Layout({ children }) {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors">
       <header className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-          Feature Flag Management App
+          Feature Flag Manager
         </h1>
 
         <ThemeToggle />
