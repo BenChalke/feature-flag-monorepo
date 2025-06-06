@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+// src/App.jsx
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import FilterTabs from "./components/FilterTabs";
 import FlagTable from "./components/FlagTable";
 import FlagForm from "./components/FlagForm";
@@ -7,15 +8,20 @@ import MobileFlagModal from "./components/MobileFlagModal";
 import useAwsWebSocketFlags from "./hooks/useAwsWebSocketFlags";
 
 export default function App() {
+  //
+  // 1) STATE + HOOK SETUP (all hooks must be at top level)
+  //
   const [flags, setFlags] = useState(null);
   const [error, setError] = useState(null);
   const [selectedTab, setSelectedTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState("name");       // "name" or "created_at"
+  const [sortDirection, setSortDirection] = useState("asc"); // "asc" or "desc"
   const [showForm, setShowForm] = useState(false);
   const [deletingFlag, setDeletingFlag] = useState(null);
   const [mobileSelectedFlag, setMobileSelectedFlag] = useState(null);
 
-  // 1) Fetch flags from the API
+  // 2) FETCH FLAGS from API
   const loadFlags = useCallback(async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_BASE}/flags`);
@@ -29,15 +35,15 @@ export default function App() {
     }
   }, []);
 
-  // 2) Listen for WebSocket events to re-fetch
+  // 3) RE‐FETCH ON WEBSOCKET EVENTS
   useAwsWebSocketFlags(loadFlags);
 
-  // 3) Initial load
+  // 4) INITIAL FETCH
   useEffect(() => {
     loadFlags();
   }, [loadFlags]);
 
-  // 4) Toggle a flag’s enabled state
+  // 5) TOGGLE FLAG (PATCH)
   const handleToggle = useCallback(
     async (id, currentlyEnabled) => {
       try {
@@ -58,7 +64,7 @@ export default function App() {
     [loadFlags]
   );
 
-  // 5) Delete a flag
+  // 6) DELETE FLAG (DELETE)
   const handleDelete = useCallback(
     async (id) => {
       try {
@@ -77,19 +83,75 @@ export default function App() {
     [loadFlags]
   );
 
-  // 6) When clicking the trash icon on desktop
+  // 7) REQUEST DELETE (desktop click on trash icon)
   const handleRequestDelete = useCallback((flag) => {
     setDeletingFlag(flag);
   }, []);
 
-  // 7) When tapping a row on mobile (≤ 450px)
+  // 8) ROW CLICK FOR MOBILE (≤ 450px)
   const handleRowClick = useCallback((flag) => {
     if (window.innerWidth <= 450) {
       setMobileSelectedFlag(flag);
     }
   }, []);
 
-  // 8) Error / Loading states
+  //
+  // 9) FILTER + SORT LOGIC (all hooks/unconditional)
+  //
+  // 9a) Map tab index → environment string
+  const envMap = { 0: "Production", 1: "Staging", 2: "Development" };
+  const currentEnv = envMap[selectedTab];
+
+  // 9b) Filter flags by selected environment (if flags is not null)
+  const envFlags = flags
+    ? flags.filter((f) => f.environment === currentEnv)
+    : [];
+
+  // 9c) Further filter by search query (case‐insensitive match on name)
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const searchedFlags = normalizedQuery
+    ? envFlags.filter((f) => f.name.toLowerCase().includes(normalizedQuery))
+    : envFlags;
+
+  // 9d) Sort the filtered flags using useMemo
+  const sortedFlags = useMemo(() => {
+    // Always work on a shallow copy
+    const copy = [...searchedFlags];
+    copy.sort((a, b) => {
+      let aVal, bVal;
+
+      if (sortField === "name") {
+        // Compare names alphabetically (case‐insensitive)
+        aVal = a.name.toLowerCase();
+        bVal = b.name.toLowerCase();
+      } else {
+        // Compare timestamps for created_at
+        aVal = new Date(a.created_at).getTime();
+        bVal = new Date(b.created_at).getTime();
+      }
+
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+    return copy;
+  }, [searchedFlags, sortField, sortDirection]);
+
+  // 9e) Change sort when a column header is clicked
+  const handleSort = (field) => {
+    if (sortField === field) {
+      // Toggle direction on same field
+      setSortDirection((dir) => (dir === "asc" ? "desc" : "asc"));
+    } else {
+      // New field → default to ascending
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  //
+  // 10) EARLY RETURNS (after all hooks + useMemo)
+  //
   if (error) {
     return <div className="text-red-500 p-6">Failed to load flags.</div>;
   }
@@ -97,23 +159,15 @@ export default function App() {
     return <div className="p-6">Loading…</div>;
   }
 
-  // 9) Only show flags matching the selected environment
-  const envMap = { 0: "Production", 1: "Staging", 2: "Development" };
-  const currentEnv = envMap[selectedTab];
-  const envFlags = flags.filter((f) => f.environment === currentEnv);
-
-  // 10) Further filter by search query (case‐insensitive substring match on name)
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const filteredFlags = normalizedQuery
-    ? envFlags.filter((f) => f.name.toLowerCase().includes(normalizedQuery))
-    : envFlags;
-
+  //
+  // 11) RENDER UI
+  //
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-0 space-y-6">
       {/* Tabs */}
       <FilterTabs selected={selectedTab} onSelect={setSelectedTab} />
 
-      {/* Search bar */}
+      {/* Search */}
       <div className="flex justify-end px-2 sm:px-0">
         <input
           type="text"
@@ -134,7 +188,7 @@ export default function App() {
         />
       </div>
 
-      {/* Flag table */}
+      {/* Table + Create Button */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 sm:mb-0">
@@ -149,10 +203,13 @@ export default function App() {
         </div>
 
         <FlagTable
-          flags={filteredFlags}
+          flags={sortedFlags}
           onToggle={handleToggle}
           onRequestDelete={handleRequestDelete}
           onRowClick={handleRowClick}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          onSort={handleSort}
         />
       </div>
 
@@ -180,7 +237,7 @@ export default function App() {
         />
       )}
 
-      {/* Mobile‐only Flag Modal (toggle + delete) */}
+      {/* Mobile‐only Flag Modal */}
       {mobileSelectedFlag && (
         <MobileFlagModal
           flag={mobileSelectedFlag}

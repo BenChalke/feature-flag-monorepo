@@ -22,21 +22,12 @@ export default function FlagRow({
       className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
       onClick={() => onRowClick(flag)}
     >
-      {/* 
-        Name cell:
-          - Always visible 
-          - Truncate if overflow 
-          - At ≤450px, width is 50% via colgroup; at ≥451px, auto.
-      */}
+      {/* NAME cell (always visible, truncate overflow) */}
       <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 truncate">
         {flag.name}
       </td>
 
-      {/* 
-        Status cell:
-          - Hidden ≤450px 
-          - Visible & auto‐sized ≥451px 
-      */}
+      {/* STATUS cell (hidden ≤450px) */}
       <td className="px-4 py-3 text-sm max-[450px]:hidden">
         <Switch
           checked={flag.enabled}
@@ -53,12 +44,7 @@ export default function FlagRow({
         </Switch>
       </td>
 
-      {/* 
-        Created At cell:
-          - Always visible 
-          - Wrap at ≤450px (via whitespace-normal) 
-          - Auto-size ≥451px 
-      */}
+      {/* CREATED AT cell (wrap ≤450px, single-line otherwise) */}
       <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-[450px]:whitespace-normal whitespace-nowrap">
         {new Date(flag.created_at).toLocaleDateString("en-US", {
           year: "numeric",
@@ -67,11 +53,7 @@ export default function FlagRow({
         })}
       </td>
 
-      {/* 
-        Delete cell:
-          - Hidden ≤450px 
-          - Visible & auto‐sized ≥451px 
-      */}
+      {/* DELETE cell (hidden ≤450px) */}
       <td className="px-4 py-3 text-right text-sm max-[450px]:hidden">
         <button
           onClick={handleDeleteClick}
