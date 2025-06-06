@@ -10,14 +10,13 @@ export default function Layout({ children }) {
           Feature Flag Management App
         </h1>
 
-        {/** Insert the standalone ThemeToggle component here **/}
         <ThemeToggle />
       </header>
 
       <main className="flex-1 p-6">{children}</main>
 
       <footer className="p-4 text-center text-xs text-gray-500 dark:text-gray-400">
-        © 2024 Your Name
+        © 2025 Ben Chalke
       </footer>
     </div>
   );

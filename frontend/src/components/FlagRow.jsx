@@ -1,3 +1,4 @@
+// src/components/FlagRow.jsx
 import React from "react";
 import { Switch } from "@headlessui/react";
 
@@ -7,8 +8,7 @@ export default function FlagRow({
   onRequestDelete,
   onRowClick,
 }) {
-  const handleToggle = async (e) => {
-    e.stopPropagation();
+  const handleToggle = async () => {
     await onToggle(flag.id, flag.enabled);
   };
 
