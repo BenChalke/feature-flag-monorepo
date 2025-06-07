@@ -1,4 +1,7 @@
-import { useState } from "react";
+// frontend/src/components/FlagForm.jsx
+
+import React, { useState } from "react";
+import { fetcher } from "../api";
 
 export default function FlagForm({ initialEnv, onClose, onCreated }) {
   const [name, setName] = useState("");
@@ -16,25 +19,21 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
     setLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE}/flags`, {
+      await fetcher(`${import.meta.env.VITE_API_BASE}/flags`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), environment }),
       });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error || "Unknown error");
-      }
       onCreated();
     } catch (err) {
-      setError(err.message || "Failed to create flag");
+      setError(err.info?.error || err.message || "Failed to create flag");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-sm mx-4 sm:mx-0 p-6 shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -49,7 +48,7 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name Field */}
+          {/* Name */}
           <div>
             <label
               htmlFor="flagName"
@@ -66,7 +65,7 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
             />
           </div>
 
-          {/* Environment Dropdown */}
+          {/* Environment */}
           <div>
             <label
               htmlFor="environment"
