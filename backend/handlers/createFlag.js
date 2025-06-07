@@ -1,5 +1,4 @@
 // handlers/createFlag.js
-
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
@@ -12,7 +11,7 @@ const {
   ApiGatewayManagementApiClient,
   PostToConnectionCommand,
 } = require("@aws-sdk/client-apigatewaymanagementapi");
-const { authorize } = require("./auth/util");
+const { authorize, buildResponse } = require("./auth/util");
 
 // Region + clients
 const REGION = process.env.AWS_REGION || "us-east-1";
@@ -21,24 +20,20 @@ const ddb = DynamoDBDocumentClient.from(ddbClient);
 
 module.exports.handler = async (event) => {
   try {
-    // 0) Auth check
+    // ─── AUTH ─────────────────────────────────────────────────────
     authorize(event);
 
-    // 1) Parse + validate body
+    // ─── BODY VALIDATION ─────────────────────────────────────────
     const { name, environment } = JSON.parse(event.body || "{}");
     if (
       typeof name !== "string" ||
       !name.trim() ||
       !["Production", "Staging", "Development"].includes(environment)
     ) {
-      return {
-        statusCode: 400,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Invalid `name` or `environment`." }),
-      };
+      return buildResponse(400, { error: "Invalid `name` or `environment`." });
     }
 
-    // 2) Increment counter for new ID
+    // ─── NEW FLAG ID ──────────────────────────────────────────────
     const counterRes = await ddb.send(
       new UpdateCommand({
         TableName: process.env.DYNAMODB_COUNTERS_TABLE,
@@ -51,7 +46,7 @@ module.exports.handler = async (event) => {
     );
     const newId = counterRes.Attributes.currentValue;
 
-    // 3) Build & put item
+    // ─── PUT NEW FLAG ────────────────────────────────────────────
     const newFlag = {
       id: newId,
       name: name.trim(),
@@ -66,7 +61,7 @@ module.exports.handler = async (event) => {
       })
     );
 
-    // 4) Broadcast over WebSocket
+    // ─── BROADCAST ────────────────────────────────────────────────
     const connectionItems = (
       (await ddb.send(
         new ScanCommand({
@@ -75,30 +70,20 @@ module.exports.handler = async (event) => {
         })
       )).Items || []
     );
-    console.log(`[createFlag] notifying ${connectionItems.length} connections`);
-
     const wsEndpoint = process.env.WEBSOCKET_ENDPOINT;
-    const apigwClient = new ApiGatewayManagementApiClient({
+    const apigw = new ApiGatewayManagementApiClient({
       region: REGION,
       endpoint: wsEndpoint,
     });
-    const payload = Buffer.from(
-      JSON.stringify({ event: "flag-created", flag: newFlag })
-    );
+    const payload = Buffer.from(JSON.stringify({ event: "flag-created", flag: newFlag }));
 
     await Promise.all(
       connectionItems.map(({ connectionId }) =>
-        apigwClient
-          .send(
-            new PostToConnectionCommand({
-              ConnectionId: connectionId,
-              Data: payload,
-            })
-          )
+        apigw
+          .send(new PostToConnectionCommand({ ConnectionId: connectionId, Data: payload }))
           .catch(async (err) => {
             const status = err.$metadata?.httpStatusCode;
             if (status === 404 || status === 410) {
-              // stale → delete
               await ddb.send(
                 new DeleteCommand({
                   TableName: process.env.DYNAMODB_CONNECTIONS_TABLE,
@@ -110,20 +95,12 @@ module.exports.handler = async (event) => {
       )
     );
 
-    return {
-      statusCode: 201,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newFlag),
-    };
+    return buildResponse(201, newFlag);
   } catch (err) {
     console.error("createFlag error:", err);
     const unauthorized = err.message === "Not authenticated";
-    return {
-      statusCode: unauthorized ? 401 : 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        error: unauthorized ? "Not authenticated." : "Failed to create flag.",
-      }),
-    };
+    return buildResponse(unauthorized ? 401 : 500, {
+      error: unauthorized ? "Not authenticated." : "Failed to create flag.",
+    });
   }
 };

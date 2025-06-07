@@ -1,10 +1,7 @@
-// src/hooks/useSessionValidator.jsx
+// frontend/src/hooks/useSessionValidator.jsx
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
-export default function useSessionValidator(intervalMs = 2 * 60 * 1000) {
-  const navigate = useNavigate();
-
+export default function useSessionValidator(onExpire, intervalMs = 2 * 60 * 1000) {
   async function validate() {
     const token = localStorage.getItem("token");
     if (!token) throw new Error("No token");
@@ -13,9 +10,8 @@ export default function useSessionValidator(intervalMs = 2 * 60 * 1000) {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      }
-      // if you switch to cookies later, add credentials: 'include' here
+        "Authorization": `Bearer ${token}`,
+      },
     });
 
     if (!res.ok) {
@@ -25,19 +21,15 @@ export default function useSessionValidator(intervalMs = 2 * 60 * 1000) {
   }
 
   useEffect(() => {
-    const tid = setInterval(() => {
+    const check = () => {
       validate().catch(() => {
         localStorage.removeItem("token");
-        navigate("/login", { replace: true });
+        onExpire();
       });
-    }, intervalMs);
+    };
 
-    // once on mount
-    validate().catch(() => {
-      localStorage.removeItem("token");
-      navigate("/login", { replace: true });
-    });
-
+    check();
+    const tid = setInterval(check, intervalMs);
     return () => clearInterval(tid);
-  }, [intervalMs, navigate]);
+  }, [intervalMs, onExpire]);
 }

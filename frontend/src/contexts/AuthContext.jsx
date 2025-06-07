@@ -1,38 +1,47 @@
 // src/contexts/AuthContext.jsx
 import React, { createContext, useState, useEffect, useContext } from "react";
+import { fetcher, API_BASE } from "../api";
 
 const AuthCtx = createContext();
 export const useAuth = () => useContext(AuthCtx);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);  // {email, firstName, lastName}
+  const [user, setUser] = useState(null); // { email, firstName, lastName }
 
   // check session on mount
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE}/auth/me`, {
-      credentials: "include",
-    }).then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.email) setUser(data); });
+    (async () => {
+      try {
+        const me = await fetcher(`${API_BASE}/auth/me`, {
+          credentials: "include",
+        });
+        setUser(me);
+      } catch {
+        setUser(null);
+      }
+    })();
   }, []);
 
   const login = async (email, password) => {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE}/auth/login`, {
+    // call login, which should set a cookie or return a token as appropriate
+    await fetcher(`${API_BASE}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type":"application/json" },
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) throw new Error("Login failed");
-    // fetch /auth/me
-    const me = await fetch(`${import.meta.env.VITE_API_BASE}/auth/me`, {
+
+    // fetch the user
+    const me = await fetcher(`${API_BASE}/auth/me`, {
       credentials: "include",
-    }).then(r => r.json());
+    });
     setUser(me);
   };
 
   const logout = async () => {
-    // clear cookie via endpoint or client-side
-    document.cookie = "session=; Max-Age=0; path=/";
+    // if you have a /auth/logout endpoint, call it here
+    // otherwise just clear client‐side state / cookies
+    document.cookie = "token=; Max-Age=0; path=/";
     setUser(null);
   };
 

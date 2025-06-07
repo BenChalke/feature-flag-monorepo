@@ -1,5 +1,4 @@
 // handlers/updateFlag.js
-
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
@@ -11,9 +10,8 @@ const {
   ApiGatewayManagementApiClient,
   PostToConnectionCommand,
 } = require("@aws-sdk/client-apigatewaymanagementapi");
-const { authorize } = require("./auth/util");
+const { authorize, buildResponse } = require("./auth/util");
 
-// set up
 const REGION = process.env.AWS_REGION || "us-east-1";
 const WS_ENDPOINT = process.env.WEBSOCKET_ENDPOINT;
 const ddbClient = new DynamoDBClient({ region: REGION });
@@ -21,21 +19,17 @@ const ddb = DynamoDBDocumentClient.from(ddbClient);
 
 module.exports.handler = async (event) => {
   try {
-    // 0) Auth
+    // ─── AUTH ─────────────────────────────────────────────────────
     authorize(event);
 
-    // 1) Parse path & body
+    // ─── PARSE & VALIDATE ────────────────────────────────────────
     const flagId = parseInt(event.pathParameters.id, 10);
     const { enabled } = JSON.parse(event.body || "{}");
     if (typeof enabled !== "boolean") {
-      return {
-        statusCode: 400,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Invalid `enabled` boolean." }),
-      };
+      return buildResponse(400, { error: "Invalid `enabled` boolean." });
     }
 
-    // 2) Update DB
+    // ─── UPDATE DDB ──────────────────────────────────────────────
     await ddb.send(
       new UpdateCommand({
         TableName: process.env.DYNAMODB_FLAGS_TABLE,
@@ -45,7 +39,7 @@ module.exports.handler = async (event) => {
       })
     );
 
-    // 3) Broadcast
+    // ─── BROADCAST ───────────────────────────────────────────────
     const connectionItems = (
       (await ddb.send(
         new ScanCommand({
@@ -54,49 +48,36 @@ module.exports.handler = async (event) => {
         })
       )).Items || []
     );
-    const apigwClient = new ApiGatewayManagementApiClient({
+    const apigw = new ApiGatewayManagementApiClient({
       region: REGION,
       endpoint: WS_ENDPOINT,
     });
-    const payload = Buffer.from(
-      JSON.stringify({ event: "flag-updated", id: flagId })
-    );
+    const payload = Buffer.from(JSON.stringify({ event: "flag-updated", id: flagId }));
 
     await Promise.all(
       connectionItems.map(({ connectionId }) =>
-        apigwClient.send(
-          new PostToConnectionCommand({
-            ConnectionId: connectionId,
-            Data: payload,
+        apigw
+          .send(new PostToConnectionCommand({ ConnectionId: connectionId, Data: payload }))
+          .catch(async (err) => {
+            const status = err.$metadata?.httpStatusCode;
+            if (status === 404 || status === 410) {
+              await ddb.send(
+                new DeleteCommand({
+                  TableName: process.env.DYNAMODB_CONNECTIONS_TABLE,
+                  Key: { connectionId },
+                })
+              );
+            }
           })
-        ).catch(async (err) => {
-          const status = err.$metadata?.httpStatusCode;
-          if (status === 404 || status === 410) {
-            await ddb.send(
-              new DeleteCommand({
-                TableName: process.env.DYNAMODB_CONNECTIONS_TABLE,
-                Key: { connectionId },
-              })
-            );
-          }
-        })
       )
     );
 
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ success: true }),
-    };
+    return buildResponse(200, { success: true });
   } catch (err) {
     console.error("updateFlag error:", err);
     const unauthorized = err.message === "Not authenticated";
-    return {
-      statusCode: unauthorized ? 401 : 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        error: unauthorized ? "Not authenticated." : "Failed to update flag.",
-      }),
-    };
+    return buildResponse(unauthorized ? 401 : 500, {
+      error: unauthorized ? "Not authenticated." : "Failed to update flag.",
+    });
   }
 };

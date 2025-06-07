@@ -1,17 +1,48 @@
 // handlers/auth/util.js
-
 const jwt = require("jsonwebtoken");
-const JWT_SECRET = process.env.JWT_SECRET;
 
-/**
- * Extracts and verifies the Bearer token from Authorization header.
- * Throws Error("Not authenticated") on missing or invalid token.
- */
+const JWT_SECRET = process.env.JWT_SECRET;
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:3000";
+
 function authorize(event) {
-  const auth = event.headers?.authorization || event.headers?.Authorization || "";
-  const match = auth.match(/^Bearer\s+(.+)$/i);
-  if (!match) throw new Error("Not authenticated");
-  return jwt.verify(match[1], JWT_SECRET);
+  // 1) Extract token from Authorization header or cookie
+  let token;
+  const authHeader = event.headers.Authorization || event.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+  } else {
+    const cookie = event.headers.cookie || "";
+    const match = cookie.match(/token=([^;]+)/);
+    if (match) token = match[1];
+  }
+
+  // 2) No token ⇒ unauthorized
+  if (!token) {
+    const err = new Error("Not authenticated");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  // 3) Verify JWT
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    const err = new Error("Not authenticated");
+    err.statusCode = 401;
+    throw err;
+  }
 }
 
-module.exports = { authorize };
+function buildResponse(statusCode, bodyObj) {
+  return {
+    statusCode,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+      "Access-Control-Allow-Credentials": "true",
+    },
+    body: JSON.stringify(bodyObj),
+  };
+}
+
+module.exports = { authorize, buildResponse };
