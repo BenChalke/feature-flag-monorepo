@@ -6,11 +6,13 @@ export default function LoginForm() {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [error, setError]       = useState(null);
+  const [loading, setLoading]   = useState(false);
   const navigate                = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
     try {
       const res  = await fetch(`${import.meta.env.VITE_API_BASE}/auth/login`, {
         method: "POST",
@@ -23,7 +25,6 @@ export default function LoginForm() {
         throw new Error(body.error || "Login failed");
       }
 
-      console.log("login response →", body);
       const { token } = body;
       if (!token) {
         throw new Error("Server didn’t return a token");
@@ -34,6 +35,8 @@ export default function LoginForm() {
     } catch (err) {
       console.error("Login error:", err);
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -70,9 +73,20 @@ export default function LoginForm() {
         </div>
         <button
           type="submit"
-          className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          disabled={loading}
+          className={`
+            w-full h-10 relative flex items-center justify-center rounded text-white transition-colors
+            ${loading 
+              ? "bg-blue-400 cursor-not-allowed" 
+              : "bg-blue-600 hover:bg-blue-700"}
+          `}
         >
-          Log In
+          {/* spinner */}
+          {loading && (
+            <div className="absolute w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
+          {/* invisible text keeps button size constant */}
+          <span className={loading ? "opacity-0" : ""}>Log In</span>
         </button>
       </form>
       <p className="mt-4 text-sm text-center text-gray-600 dark:text-gray-400">

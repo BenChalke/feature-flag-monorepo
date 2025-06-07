@@ -24,7 +24,8 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), environment }),
       });
-      onCreated();
+      // WAIT for onCreated (which reloads flags and then closes the modal)
+      await onCreated();
     } catch (err) {
       setError(err.info?.error || err.message || "Failed to create flag");
     } finally {
@@ -98,9 +99,21 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`
+                relative flex items-center justify-center
+                h-10 px-4
+                text-white rounded transition-colors
+                ${loading
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"}
+              `}
             >
-              {loading ? "Creating…" : "Create"}
+              {/* spinner */}
+              {loading && (
+                <div className="absolute w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
+              {/* keep text invisible when loading so size doesn’t shift */}
+              <span className={loading ? "opacity-0" : ""}>Create</span>
             </button>
           </div>
         </form>

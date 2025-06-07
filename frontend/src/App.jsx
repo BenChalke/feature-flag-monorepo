@@ -1,5 +1,4 @@
 // frontend/src/App.jsx
-
 import React, {
   useState,
   useEffect,
@@ -16,7 +15,8 @@ import { fetcher, FLAGS_ENDPOINT } from "./api";
 
 export default function App() {
   // ─── STATE & HOOK SETUP ──────────────────────────────────────────
-  const [flags, setFlags] = useState(null);
+  const [flags, setFlags] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedTab, setSelectedTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -26,15 +26,29 @@ export default function App() {
   const [deletingFlag, setDeletingFlag] = useState(null);
   const [mobileSelectedFlag, setMobileSelectedFlag] = useState(null);
 
+  // bulk‐select state
+  const [selectedFlags, setSelectedFlags] = useState([]);
+
+  // ─── BULK ENDPOINTS ───────────────────────────────────────────────
+  const BULK_UPDATE_ENDPOINT = `${FLAGS_ENDPOINT}/bulk-update`;
+  const BULK_DELETE_ENDPOINT = `${FLAGS_ENDPOINT}/bulk-delete`;
+
   // ─── FETCH FLAGS ─────────────────────────────────────────────────
   const loadFlags = useCallback(async () => {
+    setLoading(true);
     try {
       const data = await fetcher(FLAGS_ENDPOINT);
       setFlags(data);
       setError(null);
+      // prune selections no longer present
+      setSelectedFlags(prev =>
+        data.map(f => f.id).filter(id => prev.includes(id))
+      );
     } catch (err) {
       console.error(err);
       setError(err);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -46,7 +60,7 @@ export default function App() {
     loadFlags();
   }, [loadFlags]);
 
-  // ─── TOGGLE ───────────────────────────────────────────────────────
+  // ─── SINGLE TOGGLE ────────────────────────────────────────────────
   const handleToggle = useCallback(
     async (id, currentlyEnabled) => {
       try {
@@ -55,7 +69,7 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ enabled: !currentlyEnabled }),
         });
-        await loadFlags();
+        loadFlags();
       } catch (err) {
         console.error(err);
       }
@@ -63,12 +77,12 @@ export default function App() {
     [loadFlags]
   );
 
-  // ─── DELETE ───────────────────────────────────────────────────────
+  // ─── SINGLE DELETE ────────────────────────────────────────────────
   const handleDelete = useCallback(
-    async (id) => {
+    async id => {
       try {
         await fetcher(`${FLAGS_ENDPOINT}/${id}`, { method: "DELETE" });
-        await loadFlags();
+        loadFlags();
       } catch (err) {
         console.error(err);
       }
@@ -76,11 +90,64 @@ export default function App() {
     [loadFlags]
   );
 
-  const handleRequestDelete = useCallback((flag) => {
+  // ─── BULK ACTIONS ─────────────────────────────────────────────────
+  const handleSelectFlag = id => {
+    setSelectedFlags(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+  const handleSelectAll = checked => {
+    if (checked) {
+      setSelectedFlags(sortedFlags.map(f => f.id));
+    } else {
+      setSelectedFlags([]);
+    }
+  };
+  const bulkEnable = async () => {
+    try {
+      await fetcher(BULK_UPDATE_ENDPOINT, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedFlags, enabled: true }),
+      });
+      setSelectedFlags([]);
+      loadFlags();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const bulkDisable = async () => {
+    try {
+      await fetcher(BULK_UPDATE_ENDPOINT, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedFlags, enabled: false }),
+      });
+      setSelectedFlags([]);
+      loadFlags();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const bulkDelete = async () => {
+    try {
+      await fetcher(BULK_DELETE_ENDPOINT, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedFlags }),
+      });
+      setSelectedFlags([]);
+      loadFlags();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ─── DELETE CONFIRM & ROW CLICK ────────────────────────────────────
+  const handleRequestDelete = useCallback(flag => {
     setDeletingFlag(flag);
   }, []);
-
-  const handleRowClick = useCallback((flag) => {
+  const handleRowClick = useCallback(flag => {
     if (window.innerWidth <= 450) {
       setMobileSelectedFlag(flag);
     }
@@ -89,64 +156,47 @@ export default function App() {
   // ─── FILTER & SORT ────────────────────────────────────────────────
   const envMap = { 0: "Production", 1: "Staging", 2: "Development" };
   const currentEnv = envMap[selectedTab];
-
-  const envFlags = flags
-    ? flags.filter((f) => f.environment === currentEnv)
-    : [];
-
+  const envFlags = flags.filter(f => f.environment === currentEnv);
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const searchedFlags = normalizedQuery
-    ? envFlags.filter((f) =>
-        f.name.toLowerCase().includes(normalizedQuery)
-      )
+    ? envFlags.filter(f => f.name.toLowerCase().includes(normalizedQuery))
     : envFlags;
-
   const sortedFlags = useMemo(() => {
     const copy = [...searchedFlags];
     copy.sort((a, b) => {
-      let aVal, bVal;
-      if (sortField === "name") {
-        aVal = a.name.toLowerCase();
-        bVal = b.name.toLowerCase();
-      } else {
-        aVal = new Date(a.created_at).getTime();
-        bVal = new Date(b.created_at).getTime();
-      }
+      const aVal =
+        sortField === "name"
+          ? a.name.toLowerCase()
+          : new Date(a.created_at).getTime();
+      const bVal =
+        sortField === "name"
+          ? b.name.toLowerCase()
+          : new Date(b.created_at).getTime();
       if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
       if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
     return copy;
   }, [searchedFlags, sortField, sortDirection]);
-
-  const handleSort = (field) => {
+  const handleSort = field => {
     if (sortField === field) {
-      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+      setSortDirection(d => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
       setSortDirection("asc");
     }
   };
 
-  // ─── EARLY RETURNS ────────────────────────────────────────────────
-  if (error)
-    return <div className="text-red-500 p-6">Failed to load flags.</div>;
-  if (!flags) return <div className="p-6">Loading…</div>;
-
-  // ─── RENDER ───────────────────────────────────────────────────────
   return (
-    <div className="max-w-4xl mx-auto px-2 sm:px-0 space-y-6">
-      <FilterTabs
-        selected={selectedTab}
-        onSelect={setSelectedTab}
-      />
+    <div className="max-w-4xl mx-auto px-2 sm:px-0 space-y-4">
+      <FilterTabs selected={selectedTab} onSelect={setSelectedTab} />
 
       {/* Search bar */}
       <div className="flex justify-end px-2 sm:px-0">
         <input
           type="text"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
           placeholder="Search flags…"
           className="
             block w-full sm:w-1/3
@@ -163,6 +213,7 @@ export default function App() {
 
       {/* Table + Create Button */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+        {/* header */}
         <div className="p-4 sm:p-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
             {currentEnv} Flags
@@ -172,27 +223,34 @@ export default function App() {
             className="
               relative inline-flex items-center justify-center
               bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors focus:outline-none
-
-              /* default padding */
               px-4 py-2
-
-              /* ≤400px: fixed 32×32, hide text */
               max-[400px]:w-8 max-[400px]:h-8 max-[400px]:px-0 max-[400px]:py-0
             "
           >
             <span className="inline max-[400px]:hidden">+ Create Flag</span>
-            <span className="hidden max-[400px]:inline text-lg leading-none">+</span>
+            <span className="hidden max-[400px]:inline text-lg leading-none">
+              +
+            </span>
           </button>
         </div>
 
+        {/* table body */}
         <FlagTable
           flags={sortedFlags}
+          loading={loading}
+          error={error}
           onToggle={handleToggle}
           onRequestDelete={handleRequestDelete}
           onRowClick={handleRowClick}
           sortField={sortField}
           sortDirection={sortDirection}
           onSort={handleSort}
+          selectedFlags={selectedFlags}
+          onSelectFlag={handleSelectFlag}
+          onSelectAll={handleSelectAll}
+          onBulkEnable={bulkEnable}
+          onBulkDisable={bulkDisable}
+          onBulkDelete={bulkDelete}
         />
       </div>
 
@@ -226,7 +284,7 @@ export default function App() {
           flag={mobileSelectedFlag}
           onClose={() => setMobileSelectedFlag(null)}
           onToggle={handleToggle}
-          onDelete={async (id) => {
+          onDelete={async id => {
             await handleDelete(id);
             setMobileSelectedFlag(null);
           }}

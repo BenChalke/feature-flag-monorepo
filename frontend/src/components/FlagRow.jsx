@@ -1,5 +1,5 @@
 // src/components/FlagRow.jsx
-import React from "react";
+import React, { useState } from "react";
 import { Switch } from "@headlessui/react";
 
 export default function FlagRow({
@@ -7,9 +7,18 @@ export default function FlagRow({
   onToggle,
   onRequestDelete,
   onRowClick,
+  selected,   // boolean
+  onSelect,   // fn toggles selection
 }) {
+  const [toggling, setToggling] = useState(false);
+
   const handleToggle = async () => {
-    await onToggle(flag.id, flag.enabled);
+    setToggling(true);
+    try {
+      await onToggle(flag.id, flag.enabled);
+    } finally {
+      setToggling(false);
+    }
   };
 
   const handleDeleteClick = (e) => {
@@ -19,39 +28,66 @@ export default function FlagRow({
 
   return (
     <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-      {/* ─── NAME cell: only this cell opens the modal ──────────────────── */}
+      {/* bulk-select checkbox */}
+      <td className="px-4 py-3">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onSelect();
+          }}
+          className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+        />
+      </td>
+
+      {/* ─── NAME cell: truncate with responsive max-width ───────────── */}
       <td
-        className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 truncate"
         onClick={() => onRowClick(flag)}
+        className="
+          px-4 py-3
+          text-sm text-gray-900 dark:text-gray-100
+          truncate overflow-hidden whitespace-nowrap
+          max-w-[100px] sm:max-w-xs
+        "
       >
         {flag.name}
       </td>
 
-      {/* ─── STATUS cell (always visible, even on mobile) ───────────────── */}
-      <td className="px-4 py-3 text-sm">
-        <Switch
-          checked={flag.enabled}
-          onChange={handleToggle}
-          className={`
-            ${flag.enabled ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-600"}
-            relative inline-flex h-6 w-11 items-center rounded-full
-            transition-colors focus:outline-none
-          `}
-        >
-          <span
+      {/* ─── STATUS cell with spinner ───────────────────────────────── */}
+      <td className="px-4 py-3 text-sm relative">
+        <div className="inline-block relative">
+          <Switch
+            checked={flag.enabled}
+            onChange={handleToggle}
             className={`
-              ${flag.enabled ? "translate-x-6" : "translate-x-1"}
-              inline-block h-4 w-4 transform rounded-full bg-white
-              transition-transform
+              ${flag.enabled ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-600"}
+              relative inline-flex h-6 w-11 items-center rounded-full
+              transition-colors focus:outline-none
             `}
-          />
-        </Switch>
+          >
+            <span
+              className={`
+                ${flag.enabled ? "translate-x-6" : "translate-x-1"}
+                inline-block h-4 w-4 transform rounded-full bg-white
+                transition-transform
+              `}
+            />
+          </Switch>
+          {toggling && (
+            <div className="absolute -right-6 top-1/2 transform -translate-y-1/2">
+              <div className="h-4 w-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
       </td>
 
-      {/* ─── CREATED AT cell (hidden on mobile ≤ 450px) ──────────────────── */}
+      {/* ─── CREATED AT cell ─────────────────────────────────────────── */}
       <td
-        className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400
-                   max-[450px]:hidden whitespace-nowrap"
+        className="
+          px-4 py-3 text-sm text-gray-500 dark:text-gray-400
+          max-[450px]:hidden whitespace-nowrap
+        "
       >
         {new Date(flag.created_at).toLocaleDateString("en-US", {
           year: "numeric",
@@ -60,7 +96,7 @@ export default function FlagRow({
         })}
       </td>
 
-      {/* ─── DELETE cell (hidden on mobile ≤ 450px) ──────────────────────── */}
+      {/* ─── DELETE cell ─────────────────────────────────────────────── */}
       <td className="px-4 py-3 text-right text-sm max-[450px]:hidden">
         <button
           onClick={handleDeleteClick}
