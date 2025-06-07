@@ -1,4 +1,7 @@
-import { useState } from "react";
+// frontend/src/components/FlagForm.jsx
+
+import React, { useState } from "react";
+import { fetcher } from "../api";
 
 export default function FlagForm({ initialEnv, onClose, onCreated }) {
   const [name, setName] = useState("");
@@ -16,18 +19,14 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
     setLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE}/flags`, {
+      await fetcher(`${import.meta.env.VITE_API_BASE}/flags`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), environment }),
       });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error || "Unknown error");
-      }
       onCreated();
     } catch (err) {
-      setError(err.message || "Failed to create flag");
+      setError(err.info?.error || err.message || "Failed to create flag");
     } finally {
       setLoading(false);
     }
@@ -49,7 +48,7 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name Field */}
+          {/* Name */}
           <div>
             <label
               htmlFor="flagName"
@@ -66,7 +65,7 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
             />
           </div>
 
-          {/* Environment Dropdown */}
+          {/* Environment */}
           <div>
             <label
               htmlFor="environment"

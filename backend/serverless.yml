@@ -1,5 +1,6 @@
 service: feature-flags-backend
 frameworkVersion: "3"
+useDotenv: true
 
 provider:
   name: aws
@@ -14,18 +15,30 @@ provider:
         - https://featureflag.benchalke.com
       allowedHeaders:
         - Content-Type
+        - Authorization
       allowedMethods:
         - GET
         - POST
         - PATCH
         - DELETE
         - OPTIONS
+      allowCredentials: true
 
   environment:
-    DYNAMODB_FLAGS_TABLE:     !Ref FlagsTable
-    DYNAMODB_COUNTERS_TABLE:  !Ref CountersTable
-    DYNAMODB_CONNECTIONS_TABLE: !Ref ConnectionsTable
-    WEBSOCKET_ENDPOINT:       !Sub "https://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
+    # existing tables
+    DYNAMODB_FLAGS_TABLE:        !Ref FlagsTable
+    DYNAMODB_COUNTERS_TABLE:     !Ref CountersTable
+    DYNAMODB_CONNECTIONS_TABLE:  !Ref ConnectionsTable
+
+    # new users table
+    USERS_TABLE:                 !Ref UsersTable
+
+    # your original websocket endpoint
+    WEBSOCKET_ENDPOINT:          !Sub "https://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
+
+    # JWT config for auth
+    JWT_SECRET:                  ${env:JWT_SECRET}
+    JWT_EXPIRY:                  "1h"
 
   iam:
     role:
@@ -37,7 +50,7 @@ provider:
             - dynamodb:GetItem
             - dynamodb:PutItem
             - dynamodb:UpdateItem
-            - dynamodb:DeleteItem      # <-- allow deletes on FlagsTable
+            - dynamodb:DeleteItem
           Resource:
             - !GetAtt FlagsTable.Arn
 
@@ -55,13 +68,23 @@ provider:
           Resource:
             - !GetAtt ConnectionsTable.Arn
 
+        # grant the auth lambdas read/write to your users table
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+          Resource:
+            - !GetAtt UsersTable.Arn
+
         - Effect: Allow
           Action:
             - execute-api:ManageConnections
           Resource:
-            - Fn::Sub: "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebsocketsApi}/*"
+            - Fn::Sub: |
+                arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebsocketsApi}/*
 
 functions:
+  # ─── Flags CRUD ───────────────────────────────────────────────────────
   getFlags:
     handler: handlers/getFlags.handler
     events:
@@ -83,13 +106,36 @@ functions:
           path: /flags/{id}
           method: patch
 
-  deleteFlag:                        # ← new delete function
+  deleteFlag:
     handler: handlers/deleteFlag.handler
     events:
       - httpApi:
           path: /flags/{id}
           method: delete
 
+  # ─── Auth Endpoints ────────────────────────────────────────────────────
+  register:
+    handler: handlers/auth/register.handler
+    events:
+      - httpApi:
+          path: /auth/register
+          method: post
+
+  login:
+    handler: handlers/auth/login.handler
+    events:
+      - httpApi:
+          path: /auth/login
+          method: post
+
+  me:
+    handler: handlers/auth/me.handler
+    events:
+      - httpApi:
+          path: /auth/me
+          method: get
+
+  # ─── WebSocket lifecycle ───────────────────────────────────────────────
   onConnect:
     handler: handlers/onConnect.handler
     events:
@@ -134,6 +180,18 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: connectionId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    # new users table
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
 
