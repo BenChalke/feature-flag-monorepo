@@ -10,19 +10,19 @@ const {
   ApiGatewayManagementApiClient,
   PostToConnectionCommand,
 } = require("@aws-sdk/client-apigatewaymanagementapi");
+const { authorize } = require("./auth/util");
 
 const REGION = process.env.AWS_REGION || "us-east-1";
-const WS_ENDPOINT = process.env.WEBSOCKET_ENDPOINT; // from serverless.yml
-
+const WS_ENDPOINT = process.env.WEBSOCKET_ENDPOINT;
 const ddbClient = new DynamoDBClient({ region: REGION });
 const ddb = DynamoDBDocumentClient.from(ddbClient);
 
 module.exports.handler = async (event) => {
-  console.log("[deleteFlag] event.requestContext:", JSON.stringify(event.requestContext));
-  console.log("[deleteFlag] event.pathParameters.id:", event.pathParameters?.id);
-
   try {
-    // 1) Extract the numeric flag ID
+    // 0) Auth
+    authorize(event);
+
+    // 1) Parse
     const flagId = parseInt(event.pathParameters.id, 10);
     if (isNaN(flagId)) {
       return {
@@ -32,91 +32,66 @@ module.exports.handler = async (event) => {
       };
     }
 
-    // 2) Delete the flag from the FlagsTable
-    console.log(`[deleteFlag] Deleting FlagsTable id=${flagId}`);
+    // 2) Delete item
     await ddb.send(
       new DeleteCommand({
         TableName: process.env.DYNAMODB_FLAGS_TABLE,
         Key: { id: flagId },
       })
     );
-    console.log("[deleteFlag] DynamoDB delete successful");
 
-    // 3) Scan the ConnectionsTable for all connection IDs
-    const scanResult = await ddb.send(
-      new ScanCommand({
-        TableName: process.env.DYNAMODB_CONNECTIONS_TABLE,
-        ProjectionExpression: "connectionId",
-      })
+    // 3) Broadcast
+    const connectionItems = (
+      (await ddb.send(
+        new ScanCommand({
+          TableName: process.env.DYNAMODB_CONNECTIONS_TABLE,
+          ProjectionExpression: "connectionId",
+        })
+      )).Items || []
     );
-    const connectionItems = scanResult.Items || [];
-    console.log(`[deleteFlag] Retrieved ${connectionItems.length} connection(s)`);
-
-    // 4) Broadcast { event: "flag-deleted", id: <flagId> } to each client
-    console.log("[deleteFlag] WebSocket endpoint:", WS_ENDPOINT);
     const apigwClient = new ApiGatewayManagementApiClient({
       region: REGION,
       endpoint: WS_ENDPOINT,
     });
-
-    const payloadBuffer = Buffer.from(
+    const payload = Buffer.from(
       JSON.stringify({ event: "flag-deleted", id: flagId })
     );
 
-    // 5) For each connectionId, attempt to post. On 404/410, delete stale entry
-    const postCalls = connectionItems.map(({ connectionId }) =>
-      apigwClient
-        .send(
+    await Promise.all(
+      connectionItems.map(({ connectionId }) =>
+        apigwClient.send(
           new PostToConnectionCommand({
             ConnectionId: connectionId,
-            Data: payloadBuffer,
+            Data: payload,
           })
-        )
-        .then(() => {
-          console.log(`[deleteFlag] Successfully posted to ${connectionId}`);
-        })
-        .catch(async (err) => {
+        ).catch(async (err) => {
           const status = err.$metadata?.httpStatusCode;
-          console.error(
-            `[deleteFlag] postToConnection error for ${connectionId}:`,
-            status,
-            err.name || err.message
-          );
           if (status === 404 || status === 410) {
-            console.log(`[deleteFlag] Deleting stale connection ${connectionId}`);
-            try {
-              await ddb.send(
-                new DeleteCommand({
-                  TableName: process.env.DYNAMODB_CONNECTIONS_TABLE,
-                  Key: { connectionId },
-                })
-              );
-              console.log(`[deleteFlag] Deleted stale connection ${connectionId}`);
-            } catch (deleteErr) {
-              console.error(
-                `[deleteFlag] Failed to delete stale connection ${connectionId}:`,
-                deleteErr
-              );
-            }
+            await ddb.send(
+              new DeleteCommand({
+                TableName: process.env.DYNAMODB_CONNECTIONS_TABLE,
+                Key: { connectionId },
+              })
+            );
           }
         })
+      )
     );
 
-    await Promise.all(postCalls);
-    console.log("[deleteFlag] Broadcast complete");
-
-    // 6) Return success
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ success: true }),
     };
   } catch (err) {
-    console.error("[deleteFlag] Unexpected error:", err);
+    console.error("deleteFlag error:", err);
+    const unauthorized = err.message === "Not authenticated";
     return {
-      statusCode: 500,
+      statusCode: unauthorized ? 401 : 500,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Failed to delete flag." }),
+      body: JSON.stringify({
+        error: unauthorized ? "Not authenticated." : "Failed to delete flag.",
+      }),
     };
   }
 };

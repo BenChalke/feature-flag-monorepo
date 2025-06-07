@@ -12,19 +12,23 @@ const {
   ApiGatewayManagementApiClient,
   PostToConnectionCommand,
 } = require("@aws-sdk/client-apigatewaymanagementapi");
+const { authorize } = require("./auth/util");
 
-// 1) Region and Dynamo clients
+// Region + clients
 const REGION = process.env.AWS_REGION || "us-east-1";
 const ddbClient = new DynamoDBClient({ region: REGION });
 const ddb = DynamoDBDocumentClient.from(ddbClient);
 
 module.exports.handler = async (event) => {
   try {
-    // 2) Parse request body
+    // 0) Auth check
+    authorize(event);
+
+    // 1) Parse + validate body
     const { name, environment } = JSON.parse(event.body || "{}");
     if (
       typeof name !== "string" ||
-      name.trim() === "" ||
+      !name.trim() ||
       !["Production", "Staging", "Development"].includes(environment)
     ) {
       return {
@@ -34,7 +38,7 @@ module.exports.handler = async (event) => {
       };
     }
 
-    // 3) Atomically increment a counter for a new numeric ID
+    // 2) Increment counter for new ID
     const counterRes = await ddb.send(
       new UpdateCommand({
         TableName: process.env.DYNAMODB_COUNTERS_TABLE,
@@ -47,7 +51,7 @@ module.exports.handler = async (event) => {
     );
     const newId = counterRes.Attributes.currentValue;
 
-    // 4) Build the new flag object
+    // 3) Build & put item
     const newFlag = {
       id: newId,
       name: name.trim(),
@@ -55,8 +59,6 @@ module.exports.handler = async (event) => {
       enabled: false,
       created_at: new Date().toISOString(),
     };
-
-    // 5) Write the new flag into the Flags table
     await ddb.send(
       new PutCommand({
         TableName: process.env.DYNAMODB_FLAGS_TABLE,
@@ -64,89 +66,64 @@ module.exports.handler = async (event) => {
       })
     );
 
-    // 6) Scan the Connections table for all connectionIds
-    const scanResult = await ddb.send(
-      new ScanCommand({
-        TableName: process.env.DYNAMODB_CONNECTIONS_TABLE,
-        ProjectionExpression: "connectionId",
-      })
+    // 4) Broadcast over WebSocket
+    const connectionItems = (
+      (await ddb.send(
+        new ScanCommand({
+          TableName: process.env.DYNAMODB_CONNECTIONS_TABLE,
+          ProjectionExpression: "connectionId",
+        })
+      )).Items || []
     );
-    const connectionItems = scanResult.Items || [];
-    console.log(`[createFlag] Found ${connectionItems.length} connection(s) to notify.`);
+    console.log(`[createFlag] notifying ${connectionItems.length} connections`);
 
-    // 7) Build the correct WebSocket endpoint
-    const domainName = event.requestContext.domainName; // e.g. "rr0pwgb4w9.execute-api.ap-southeast-2.amazonaws.com"
-    const stage = event.requestContext.stage;           // e.g. "$default"
-    const wsEndpoint = process.env.WEBSOCKET_ENDPOINT;   // from serverless.yml
-    // (You could also reconstruct from domainName + stage if both HTTP+WS share the same URL,
-    // but using WEBSOCKET_ENDPOINT is more reliable.)
-
-    console.log("[createFlag] Broadcasting to WS endpoint:", wsEndpoint);
-
-    // 8) Create the API Gateway Management client
+    const wsEndpoint = process.env.WEBSOCKET_ENDPOINT;
     const apigwClient = new ApiGatewayManagementApiClient({
       region: REGION,
       endpoint: wsEndpoint,
     });
+    const payload = Buffer.from(
+      JSON.stringify({ event: "flag-created", flag: newFlag })
+    );
 
-    // 9) Build payload once (as a Buffer) for efficiency
-    const payloadBuffer = Buffer.from(JSON.stringify({ event: "flag-created", flag: newFlag }));
-
-    // 10) Post to every connectionId; delete stale ones on 404/410
-    const postCalls = connectionItems.map(({ connectionId }) =>
-      apigwClient
-        .send(
-          new PostToConnectionCommand({
-            ConnectionId: connectionId,
-            Data: payloadBuffer,
-          })
-        )
-        .then(() => {
-          console.log(`[createFlag] Successfully posted to ${connectionId}`);
-        })
-        .catch(async (err) => {
-          const status = err.$metadata?.httpStatusCode;
-          console.error(
-            `[createFlag] postToConnection error for ${connectionId}:`,
-            status,
-            err.name || err.message
-          );
-          if (status === 404 || status === 410) {
-            console.log(`[createFlag] Deleting stale connection ${connectionId}`);
-            try {
+    await Promise.all(
+      connectionItems.map(({ connectionId }) =>
+        apigwClient
+          .send(
+            new PostToConnectionCommand({
+              ConnectionId: connectionId,
+              Data: payload,
+            })
+          )
+          .catch(async (err) => {
+            const status = err.$metadata?.httpStatusCode;
+            if (status === 404 || status === 410) {
+              // stale → delete
               await ddb.send(
                 new DeleteCommand({
                   TableName: process.env.DYNAMODB_CONNECTIONS_TABLE,
                   Key: { connectionId },
                 })
               );
-              console.log(`[createFlag] Deleted stale connection ${connectionId}`);
-            } catch (deleteErr) {
-              console.error(
-                `[createFlag] Failed to delete stale connection ${connectionId}:`,
-                deleteErr
-              );
             }
-          }
-        })
+          })
+      )
     );
 
-    // 11) Wait for all broadcast attempts (and stale‐deletions) to finish
-    await Promise.all(postCalls);
-    console.log("[createFlag] Broadcast complete");
-
-    // 12) Return the newly created flag back to the caller
     return {
       statusCode: 201,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newFlag),
     };
   } catch (err) {
-    console.error("[createFlag] Unexpected error:", err);
+    console.error("createFlag error:", err);
+    const unauthorized = err.message === "Not authenticated";
     return {
-      statusCode: 500,
+      statusCode: unauthorized ? 401 : 500,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Failed to create flag." }),
+      body: JSON.stringify({
+        error: unauthorized ? "Not authenticated." : "Failed to create flag.",
+      }),
     };
   }
 };
