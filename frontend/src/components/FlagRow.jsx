@@ -1,4 +1,3 @@
-// src/components/FlagRow.jsx
 import React, { useState } from "react";
 import { Switch } from "@headlessui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -9,8 +8,8 @@ export default function FlagRow({
   onToggle,
   onRequestDelete,
   onOpenMenu,
-  selected,   // boolean
-  onSelect,   // fn toggles selection
+  selected,
+  onSelect,
 }) {
   const [toggling, setToggling] = useState(false);
 

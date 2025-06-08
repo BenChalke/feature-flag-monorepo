@@ -194,7 +194,6 @@ export default function App() {
     }
   };
 
-  // ─── RENDER ───────────────────────────────────────────────────────
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-0 space-y-4">
       <FilterTabs selected={selectedTab} onSelect={setSelectedTab} />

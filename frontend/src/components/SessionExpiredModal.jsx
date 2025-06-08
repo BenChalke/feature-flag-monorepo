@@ -1,4 +1,3 @@
-// src/components/SessionExpiredModal.jsx
 import React from "react";
 
 export default function SessionExpiredModal({ onClose }) {

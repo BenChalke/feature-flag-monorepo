@@ -78,7 +78,7 @@ export default function RegisterForm() {
         Register
       </h2>
       {error && <p className="text-red-500 mb-2">{error}</p>}
-      {/* noValidate disables native required-field checks so your validate() runs */}
+      {/* noValidate disables native required-field checks so validate() runs */}
       <form noValidate onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm text-gray-700 dark:text-gray-300">
@@ -119,8 +119,6 @@ export default function RegisterForm() {
             placeholder="you@example.com"
           />
         </div>
-
-        {/* Password field with its own relative wrapper */}
         <div>
           <label className="block text-sm text-gray-700 dark:text-gray-300">
             Password
@@ -144,8 +142,6 @@ export default function RegisterForm() {
             </button>
           </div>
         </div>
-
-        {/* Confirm password field similarly wrapped */}
         <div>
           <label className="block text-sm text-gray-700 dark:text-gray-300">
             Confirm Password

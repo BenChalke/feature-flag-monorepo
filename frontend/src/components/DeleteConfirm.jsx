@@ -1,7 +1,6 @@
 import React from "react";
 import ConfirmModal from "./ConfirmModal";
 
-// now accepts a `loading` prop too
 export default function DeleteConfirm({
   flagName,
   onCancel,

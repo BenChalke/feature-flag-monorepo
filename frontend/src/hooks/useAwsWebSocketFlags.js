@@ -1,4 +1,3 @@
-// src/hooks/useAwsWebSocketFlags.js
 import { useEffect } from "react";
 
 export default function useAwsWebSocketFlags(onEvent) {

@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.jsx
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { fetcher, API_BASE } from "../api";
 

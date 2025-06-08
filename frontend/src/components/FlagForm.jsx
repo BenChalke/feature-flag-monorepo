@@ -1,5 +1,3 @@
-// frontend/src/components/FlagForm.jsx
-
 import React, { useState } from "react";
 import { fetcher } from "../api";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

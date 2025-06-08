@@ -1,4 +1,3 @@
-// src/components/FilterTabs.jsx
 import React from "react";
 
 export default function FilterTabs({ selected, onSelect }) {

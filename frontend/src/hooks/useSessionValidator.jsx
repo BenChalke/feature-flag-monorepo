@@ -1,4 +1,3 @@
-// src/hooks/useSessionValidator.jsx
 import { useEffect } from "react";
 
 export default function useSessionValidator(onExpire, intervalMs = 2 * 60 * 1000) {

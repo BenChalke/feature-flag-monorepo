@@ -1,5 +1,3 @@
-// frontend/src/api.js
-
 // Custom Error subclass for clarity
 export class SessionExpiredError extends Error {
   constructor() {

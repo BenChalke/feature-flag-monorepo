@@ -1,5 +1,3 @@
-// jest.config.cjs
-// If you keep this as CJS, add:
 process.env.BABEL_CONFIG_FILE = './babel.config.mjs';
 
 module.exports = {

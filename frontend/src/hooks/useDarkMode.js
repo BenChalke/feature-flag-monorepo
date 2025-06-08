@@ -1,7 +1,6 @@
-// src/hooks/useDarkMode.js
 import { useState, useEffect, useCallback } from "react";
 
-const STORAGE_KEY = "theme"; // where we store “light” or “dark” in localStorage
+const STORAGE_KEY = "theme";
 
 export default function useDarkMode() {
   // 1. Read initial theme: localStorage → system preference → default “light”

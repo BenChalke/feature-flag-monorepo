@@ -1,4 +1,3 @@
-// src/components/Header.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -9,7 +8,6 @@ export default function Header() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // ─── THEME LOGIC INLINED ───────────────────────────────────────
   const [theme, setTheme] = useState(() => {
     if (typeof window === "undefined") return "light";
     try {
@@ -34,14 +32,12 @@ export default function Header() {
   const toggleTheme = () =>
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
-  // ─── LOGOUT CONFIRM ────────────────────────────────────────────
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login", { replace: true });
   };
 
-  // ─── MOBILE MENU DROPDOWN ──────────────────────────────────────
   const menuRef = useRef(null);
   useEffect(() => {
     function onClickOutside(e) {

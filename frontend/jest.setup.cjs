@@ -1,4 +1,3 @@
-// jest.setup.cjs
 require('@testing-library/jest-dom');
 
 // polyfill fetch so spyOn/global.fetch exists
@@ -17,14 +16,13 @@ global.importMetaEnv = {
   VITE_WEBSOCKET_URL: '',
 };
 
-// ← Add this:
 global.fetch = jest.fn();
 
 jest.mock('react-router-dom', () => {
   const orig = jest.requireActual('react-router-dom');
   return {
     ...orig,
-    BrowserRouter: ({ children }) => children,      // no-op
+    BrowserRouter: ({ children }) => children,
   };
 });
 

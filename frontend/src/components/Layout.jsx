@@ -1,4 +1,3 @@
-// src/components/Layout.jsx
 import React from "react";
 
 export default function Layout({ children }) {
