@@ -65,7 +65,7 @@ export default function Header() {
 
         {/* single cog menu on all screen sizes */}
         <details ref={menuRef} className="relative">
-          <summary className="list-none cursor-pointer p-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-100">
+          <summary className="list-none cursor-pointer p-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-700">
             <FontAwesomeIcon
               icon={faCog}
               className="text-gray-600 dark:text-gray-300 text-xl"
