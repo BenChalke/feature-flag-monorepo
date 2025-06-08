@@ -33,5 +33,6 @@ export default function useSessionValidator(onExpire, intervalMs = 2 * 60 * 1000
     check();
     const tid = setInterval(check, intervalMs);
     return () => clearInterval(tid);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intervalMs, onExpire]);
 }
