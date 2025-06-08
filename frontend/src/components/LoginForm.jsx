@@ -48,10 +48,11 @@ export default function LoginForm() {
       {error && <p className="text-red-500 mb-2">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm text-gray-700 dark:text-gray-300">
+          <label htmlFor="email" className="block text-sm text-gray-700 dark:text-gray-300">
             Email
           </label>
           <input
+            id="email"
             type="email"
             required
             value={email}
@@ -60,10 +61,11 @@ export default function LoginForm() {
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-700 dark:text-gray-300">
+          <label htmlFor="password" className="block text-sm text-gray-700 dark:text-gray-300">
             Password
           </label>
           <input
+            id="password"
             type="password"
             required
             value={password}

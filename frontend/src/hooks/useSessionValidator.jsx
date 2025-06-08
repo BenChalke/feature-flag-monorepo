@@ -1,10 +1,13 @@
-// frontend/src/hooks/useSessionValidator.jsx
+// src/hooks/useSessionValidator.jsx
 import { useEffect } from "react";
 
 export default function useSessionValidator(onExpire, intervalMs = 2 * 60 * 1000) {
   async function validate() {
     const token = localStorage.getItem("token");
-    if (!token) throw new Error("No token");
+    if (!token) {
+      onExpire();
+      return;
+    }
 
     const res = await fetch(`${import.meta.env.VITE_API_BASE}/auth/me`, {
       method: "GET",

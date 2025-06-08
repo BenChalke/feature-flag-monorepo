@@ -13,7 +13,7 @@ import useAwsWebSocketFlags from "./hooks/useAwsWebSocketFlags";
 import { fetcher, FLAGS_ENDPOINT } from "./api";
 
 export default function App() {
-  // ─── STATE & HOOK SETUP ──────────────────────────────────────────
+  // ─── STATE ────────────────────────────────────────────────────────
   const [flags, setFlags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,18 +29,18 @@ export default function App() {
   // bulk‐select state
   const [selectedFlags, setSelectedFlags] = useState([]);
 
-  // ─── BULK ENDPOINTS ───────────────────────────────────────────────
+  // bulk endpoints
   const BULK_UPDATE_ENDPOINT = `${FLAGS_ENDPOINT}/bulk-update`;
   const BULK_DELETE_ENDPOINT = `${FLAGS_ENDPOINT}/bulk-delete`;
 
-  // ─── FETCH FLAGS ─────────────────────────────────────────────────
+  // ─── FETCH FLAGS ──────────────────────────────────────────────────
   const loadFlags = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetcher(FLAGS_ENDPOINT);
       setFlags(data);
       setError(null);
-      // prune selections no longer present
+      // drop any selections that no longer exist
       setSelectedFlags((prev) =>
         data.map((f) => f.id).filter((id) => prev.includes(id))
       );
@@ -52,10 +52,10 @@ export default function App() {
     }
   }, []);
 
-  // re-fetch on WebSocket events
+  // re-fetch when WebSocket notifies
   useAwsWebSocketFlags(loadFlags);
 
-  // initial fetch
+  // initial load
   useEffect(() => {
     loadFlags();
   }, [loadFlags]);
@@ -96,13 +96,16 @@ export default function App() {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
+
   const handleSelectAll = (checked) => {
     if (checked) {
+      // select every flag currently shown in the table
       setSelectedFlags(sortedFlags.map((f) => f.id));
     } else {
       setSelectedFlags([]);
     }
   };
+
   const bulkEnable = async () => {
     try {
       await fetcher(BULK_UPDATE_ENDPOINT, {
@@ -116,6 +119,7 @@ export default function App() {
       console.error(err);
     }
   };
+
   const bulkDisable = async () => {
     try {
       await fetcher(BULK_UPDATE_ENDPOINT, {
@@ -129,6 +133,7 @@ export default function App() {
       console.error(err);
     }
   };
+
   const bulkDelete = async () => {
     try {
       await fetcher(BULK_DELETE_ENDPOINT, {
@@ -147,7 +152,7 @@ export default function App() {
   const handleRequestDelete = useCallback((flag) => {
     setDeletingFlag(flag);
   }, []);
-  // renamed: always open mobile menu on ellipsis click
+
   const handleOpenRowMenu = useCallback((flag) => {
     setMobileSelectedFlag(flag);
   }, []);
@@ -156,10 +161,12 @@ export default function App() {
   const envMap = { 0: "Production", 1: "Staging", 2: "Development" };
   const currentEnv = envMap[selectedTab];
   const envFlags = flags.filter((f) => f.environment === currentEnv);
+
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const searchedFlags = normalizedQuery
     ? envFlags.filter((f) => f.name.toLowerCase().includes(normalizedQuery))
     : envFlags;
+
   const sortedFlags = useMemo(() => {
     const copy = [...searchedFlags];
     copy.sort((a, b) => {
@@ -177,6 +184,7 @@ export default function App() {
     });
     return copy;
   }, [searchedFlags, sortField, sortDirection]);
+
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
@@ -186,6 +194,7 @@ export default function App() {
     }
   };
 
+  // ─── RENDER ───────────────────────────────────────────────────────
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-0 space-y-4">
       <FilterTabs selected={selectedTab} onSelect={setSelectedTab} />

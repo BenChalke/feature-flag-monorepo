@@ -39,8 +39,8 @@ export default function RegisterForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
     if (!validate()) return;
+    setError(null);
     setLoading(true);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_BASE}/auth/register`, {
@@ -78,7 +78,8 @@ export default function RegisterForm() {
         Register
       </h2>
       {error && <p className="text-red-500 mb-2">{error}</p>}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {/* noValidate disables native required-field checks so your validate() runs */}
+      <form noValidate onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm text-gray-700 dark:text-gray-300">
             First Name

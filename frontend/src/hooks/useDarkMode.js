@@ -26,6 +26,7 @@ export default function useDarkMode() {
     } else {
       root.classList.remove("dark");
     }
+    root.dataset.theme = theme;
     localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 

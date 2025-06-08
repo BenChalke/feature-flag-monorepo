@@ -157,7 +157,7 @@ export default function FlagTable({
           {flags.length === 0 && loading ? (
             <tr>
               <td colSpan={5} className="py-8 text-center">
-                <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <div role="progressbar" aria-label="Loading" className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
               </td>
             </tr>
           ) : error ? (
