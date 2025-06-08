@@ -18,6 +18,7 @@ import ProtectedLayout from "./components/ProtectedLayout";
 import App from "./App";
 import LoginForm from "./components/LoginForm";
 import RegisterForm from "./components/RegisterForm";
+import NotFound from "./components/NotFound";
 
 // Wraps *all* pages in your shared chrome
 function PublicLayout() {
@@ -46,10 +47,11 @@ export default function Main() {
           {/* Public */}
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
+          <Route path="/404" element={<NotFound />} />
 
           {/* Protected */}
           <Route
-            path="/*"
+            path="/"
             element={
               <RequireAuth>
                 <ProtectedLayout />
@@ -58,10 +60,11 @@ export default function Main() {
           >
             <Route index element={<App />} />
             {/* add more protected child routes here */}
+            <Route path="/404" element={<NotFound />} />
           </Route>
 
           {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
