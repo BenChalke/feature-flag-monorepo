@@ -21,6 +21,7 @@ When running, multiple browser instances stay in sync via WebSocket broadcasts. 
    4.1. [Configuration & Env Variables](#configuration--env-variables-1)
    4.2. [Install & Run](#install--run)
    4.3. [Build for Production](#build-for-production)
+   4.4. [Testing](#testing)
 5. [Real-Time WebSocket Flow](#real-time-websocket-flow)
 6. [Common Commands](#common-commands)
 
@@ -46,38 +47,77 @@ When running, multiple browser instances stay in sync via WebSocket broadcasts. 
 
 ```
 feature-flag-monorepo/
-├── backend/                          
-│   ├── handlers/                     
+├── backend/
+│   ├── handlers/
 │   │   ├── createFlag.js
 │   │   ├── deleteFlag.js
 │   │   ├── getFlags.js
 │   │   ├── onConnect.js
 │   │   ├── onDisconnect.js
 │   │   └── updateFlag.js
-│   ├── serverless.yml                
-│   ├── package.json                  
-│   └── README.md                     
-│
-└── frontend/                         
+│   ├── serverless.yml
+│   ├── package.json
+│   └── README.md
+└── frontend/
     ├── public/
     │   └── index.html
-    ├── src/
-    │   ├── api.js
-    │   ├── App.jsx
-    │   ├── main.jsx
-    │   ├── index.css
-    │   ├── components/
-    │   │   ├── DeleteConfirm.jsx
-    │   │   ├── FilterTabs.jsx
-    │   │   ├── FlagForm.jsx
-    │   │   ├── FlagRow.jsx
-    │   │   └── FlagTable.jsx
-    │   └── hooks/
-    │       └── useAwsWebSocketFlags.js
-    ├── .env.local.example            
+    ├── .env.local.example
     ├── package.json
     ├── tailwind.config.js
-    └── vite.config.js
+    ├── vite.config.js
+    └── src/
+        ├── api.js
+        ├── App.jsx
+        ├── main.jsx
+        ├── index.css
+        ├── components/
+        │   ├── ConfirmModal.jsx
+        │   ├── DeleteConfirm.jsx
+        │   ├── FilterTabs.jsx
+        │   ├── FlagForm.jsx
+        │   ├── FlagRow.jsx
+        │   ├── FlagTable.jsx
+        │   ├── Header.jsx
+        │   ├── Layout.jsx
+        │   ├── LoginForm.jsx
+        │   ├── MobileFlagModal.jsx
+        │   ├── NotFound.jsx
+        │   ├── ProtectedLayout.jsx
+        │   ├── RegisterForm.jsx
+        │   └── SessionExpiredModal.jsx
+        ├── contexts/
+        │   └── AuthContext.jsx
+        ├── hooks/
+        │   ├── useAwsWebSocketFlags.js
+        │   ├── useDarkMode.js
+        │   └── useSessionValidator.jsx
+        └── __tests__/
+            ├── api.test.jsx
+            ├── App.test.jsx
+            ├── App.more.test.jsx
+            ├── main.test.jsx
+            ├── main.routes.test.jsx
+            ├── main.entrypoint.test.jsx
+            ├── hooks/
+            │   ├── useAwsWebSocketFlags.test.js
+            │   ├── useDarkMode.test.js
+            │   └── useSessionValidator.test.jsx
+            └── components/
+                ├── ConfirmModal.test.jsx
+                ├── DeleteConfirm.test.jsx
+                ├── FilterTabs.test.jsx
+                ├── FlagForm.test.jsx
+                ├── FlagRow.test.jsx
+                ├── FlagTable.test.jsx
+                ├── Header.test.jsx
+                ├── Layout.test.jsx
+                ├── LoginForm.test.jsx
+                ├── MobileFlagModal.test.jsx
+                ├── NotFound.test.jsx
+                ├── ProtectedLayout.test.jsx
+                ├── RegisterForm.test.jsx
+                └── SessionExpiredModal.test.jsx
+
 ```
 
 ---
@@ -224,6 +264,31 @@ npm run build
 * This outputs an optimized build in `dist/`. You can deploy that to any static hosting (Netlify, Vercel, S3 + CloudFront, etc.).
 * When deployed, make sure the environment variables `VITE_API_BASE` and `VITE_WEBSOCKET_URL` point to the live AWS endpoints.
 
+### Testing
+
+All frontend functionality is covered by **Jest** + **React Testing Library**. The tests live alongside your source under `src/__tests__` and `src/hooks/__tests__/` and cover:
+
+* **API layer** (`api.fetcher`, error & 401 handling)
+* **Custom hooks** (`useAwsWebSocketFlags`, `useDarkMode`, `useSessionValidator`)
+* **Components** (layout, modals, forms, tables, routing)
+* **App logic** (filtering, sorting, CRUD & bulk actions, dark mode toggling)
+* **Routing** (public vs. protected routes, 404 redirects, entrypoint bootstrap)
+
+To run tests:
+
+```bash
+cd frontend
+npm test
+```
+
+To generate a coverage report:
+
+```bash
+npm test -- --coverage
+```
+
+Reports will be output to `coverage/` and the console summary will show percentage metrics for statements, branches, functions, and lines.
+
 ---
 
 ## Real-Time WebSocket Flow
@@ -268,7 +333,11 @@ npm install
 npm run dev                    # Start Vite dev server (http://localhost:3000)
 npm run build                  # Build for production
 
-# 3) Lint (if ESLint configured)
+# 3) Tests
+npm test                       # Run all tests
+npm test -- --coverage         # Run tests with coverage reporting
+
+# 4) Lint (if ESLint configured)
 cd frontend
 npm run lint
 ```
