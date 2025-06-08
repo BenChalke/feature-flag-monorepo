@@ -29,7 +29,9 @@ export default function useAwsWebSocketFlags(onEvent) {
         if (
           msg.event === "flag-created" ||
           msg.event === "flag-updated" ||
-          msg.event === "flag-deleted"
+          msg.event === "flag-deleted" || 
+          msg.event === "flags-deleted" || 
+          msg.event === "flags-updated"
         ) {
           console.log(
             "Parsed message:",

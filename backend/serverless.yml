@@ -113,6 +113,21 @@ functions:
           path: /flags/{id}
           method: delete
 
+  # ─── Bulk Actions ────────────────────────────────────────────────────
+  bulkDeleteFlags:
+    handler: handlers/bulkDeleteFlags.handler
+    events:
+      - httpApi:
+          path: /flags/bulk-delete
+          method: delete
+
+  bulkUpdateFlags:
+    handler: handlers/bulkUpdateFlags.handler
+    events:
+      - httpApi:
+          path: /flags/bulk-update
+          method: patch
+
   # ─── Auth Endpoints ────────────────────────────────────────────────────
   register:
     handler: handlers/auth/register.handler
