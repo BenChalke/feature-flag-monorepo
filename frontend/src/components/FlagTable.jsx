@@ -1,4 +1,3 @@
-// src/components/FlagTable.jsx
 import React, { useState, useRef, useEffect } from "react";
 import FlagRow from "./FlagRow";
 import ConfirmModal from "./ConfirmModal";
@@ -9,7 +8,7 @@ export default function FlagTable({
   error,
   onToggle,
   onRequestDelete,
-  onRowClick,
+  onOpenRowMenu,
   sortField,
   sortDirection,
   onSort,
@@ -41,35 +40,25 @@ export default function FlagTable({
 
   const SortIcon = ({ field }) => {
     if (sortField !== field) return null;
-    return (
-      <span className="ml-1 text-xs">
-        {sortDirection === "asc" ? "▲" : "▼"}
-      </span>
-    );
+    return <span className="ml-1 text-xs">{sortDirection === "asc" ? "▲" : "▼"}</span>;
   };
 
   const actionMap = {
     enable: {
       title: `Enable ${bulkCount} flag${bulkCount > 1 ? "s" : ""}?`,
-      body: `Are you sure you want to turn ON all ${bulkCount} selected flag${
-        bulkCount > 1 ? "s" : ""
-      }?`,
+      body: `Are you sure you want to turn ON all ${bulkCount} selected flag${bulkCount > 1 ? "s" : ""}?`,
       confirmText: "Enable",
       handler: onBulkEnable,
     },
     disable: {
       title: `Disable ${bulkCount} flag${bulkCount > 1 ? "s" : ""}?`,
-      body: `Are you sure you want to turn OFF all ${bulkCount} selected flag${
-        bulkCount > 1 ? "s" : ""
-      }?`,
+      body: `Are you sure you want to turn OFF all ${bulkCount} selected flag${bulkCount > 1 ? "s" : ""}?`,
       confirmText: "Disable",
       handler: onBulkDisable,
     },
     delete: {
       title: `Delete ${bulkCount} flag${bulkCount > 1 ? "s" : ""}?`,
-      body: `This will permanently delete all ${bulkCount} selected flag${
-        bulkCount > 1 ? "s" : ""
-      }. Are you sure?`,
+      body: `This will permanently delete all ${bulkCount} selected flag${bulkCount > 1 ? "s" : ""}. Are you sure?`,
       confirmText: "Delete",
       handler: onBulkDelete,
     },
@@ -93,8 +82,6 @@ export default function FlagTable({
                 <span className="text-sm text-gray-700 dark:text-gray-300">
                   {bulkCount} selected
                 </span>
-
-                {/* always reserve space for this button */}
                 <div className="relative inline-block" ref={dropdownRef}>
                   <button
                     onClick={() => bulkCount && setOpen((o) => !o)}
@@ -108,35 +95,24 @@ export default function FlagTable({
                       ${bulkCount === 0 ? "invisible pointer-events-none" : ""}
                     `}
                   >
-                    Bulk actions{" "}
-                    <span className="ml-1 text-xs">{open ? "▲" : "▼"}</span>
+                    Bulk actions <span className="ml-1 text-xs">{open ? "▲" : "▼"}</span>
                   </button>
-
                   {open && bulkCount > 0 && (
                     <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-50">
                       <button
-                        onClick={() => {
-                          setOpen(false);
-                          setConfirmAction("enable");
-                        }}
+                        onClick={() => { setOpen(false); setConfirmAction("enable"); }}
                         className="w-full px-3 py-2 text-left text-sm text-green-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       >
                         Enable
                       </button>
                       <button
-                        onClick={() => {
-                          setOpen(false);
-                          setConfirmAction("disable");
-                        }}
+                        onClick={() => { setOpen(false); setConfirmAction("disable"); }}
                         className="w-full px-3 py-2 text-left text-sm text-yellow-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       >
                         Disable
                       </button>
                       <button
-                        onClick={() => {
-                          setOpen(false);
-                          setConfirmAction("delete");
-                        }}
+                        onClick={() => { setOpen(false); setConfirmAction("delete"); }}
                         className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       >
                         Delete
@@ -164,7 +140,7 @@ export default function FlagTable({
             >
               Name<SortIcon field="name" />
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th className="px-4 py-3 w-[50px] text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Status
             </th>
             <th
@@ -192,9 +168,7 @@ export default function FlagTable({
             </tr>
           ) : flags.length === 0 ? (
             <tr>
-              <td colSpan={5} className="py-4 text-center text-gray-500 dark:text-gray-400">
-                No flags in this environment.
-              </td>
+              <td colSpan={5} className="py-4 text-center text-gray-500 dark:text-gray-400">No flags in this environment.</td>
             </tr>
           ) : (
             flags.map((flag) => (
@@ -203,7 +177,7 @@ export default function FlagTable({
                 flag={flag}
                 onToggle={onToggle}
                 onRequestDelete={onRequestDelete}
-                onRowClick={onRowClick}
+                onOpenMenu={() => onOpenRowMenu(flag)}
                 selected={selectedFlags.includes(flag.id)}
                 onSelect={() => onSelectFlag(flag.id)}
               />
@@ -219,9 +193,7 @@ export default function FlagTable({
           cancelText="Cancel"
           confirmText={actionMap[confirmAction].confirmText}
           loading={confirmLoading}
-          onCancel={() => {
-            if (!confirmLoading) setConfirmAction(null);
-          }}
+          onCancel={() => { if (!confirmLoading) setConfirmAction(null); }}
           onConfirm={async () => {
             setConfirmLoading(true);
             try {

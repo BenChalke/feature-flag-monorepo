@@ -1,4 +1,3 @@
-// frontend/src/App.jsx
 import React, {
   useState,
   useEffect,
@@ -42,8 +41,8 @@ export default function App() {
       setFlags(data);
       setError(null);
       // prune selections no longer present
-      setSelectedFlags(prev =>
-        data.map(f => f.id).filter(id => prev.includes(id))
+      setSelectedFlags((prev) =>
+        data.map((f) => f.id).filter((id) => prev.includes(id))
       );
     } catch (err) {
       console.error(err);
@@ -80,7 +79,7 @@ export default function App() {
 
   // ─── SINGLE DELETE ────────────────────────────────────────────────
   const handleDelete = useCallback(
-    async id => {
+    async (id) => {
       try {
         await fetcher(`${FLAGS_ENDPOINT}/${id}`, { method: "DELETE" });
         loadFlags();
@@ -92,14 +91,14 @@ export default function App() {
   );
 
   // ─── BULK ACTIONS ─────────────────────────────────────────────────
-  const handleSelectFlag = id => {
-    setSelectedFlags(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+  const handleSelectFlag = (id) => {
+    setSelectedFlags((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
-  const handleSelectAll = checked => {
+  const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedFlags(sortedFlags.map(f => f.id));
+      setSelectedFlags(sortedFlags.map((f) => f.id));
     } else {
       setSelectedFlags([]);
     }
@@ -144,23 +143,22 @@ export default function App() {
     }
   };
 
-  // ─── DELETE CONFIRM & ROW CLICK ────────────────────────────────────
-  const handleRequestDelete = useCallback(flag => {
+  // ─── DELETE CONFIRM & MOBILE MENU ─────────────────────────────────
+  const handleRequestDelete = useCallback((flag) => {
     setDeletingFlag(flag);
   }, []);
-  const handleRowClick = useCallback(flag => {
-    if (window.innerWidth <= 450) {
-      setMobileSelectedFlag(flag);
-    }
+  // renamed: always open mobile menu on ellipsis click
+  const handleOpenRowMenu = useCallback((flag) => {
+    setMobileSelectedFlag(flag);
   }, []);
 
   // ─── FILTER & SORT ────────────────────────────────────────────────
   const envMap = { 0: "Production", 1: "Staging", 2: "Development" };
   const currentEnv = envMap[selectedTab];
-  const envFlags = flags.filter(f => f.environment === currentEnv);
+  const envFlags = flags.filter((f) => f.environment === currentEnv);
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const searchedFlags = normalizedQuery
-    ? envFlags.filter(f => f.name.toLowerCase().includes(normalizedQuery))
+    ? envFlags.filter((f) => f.name.toLowerCase().includes(normalizedQuery))
     : envFlags;
   const sortedFlags = useMemo(() => {
     const copy = [...searchedFlags];
@@ -179,9 +177,9 @@ export default function App() {
     });
     return copy;
   }, [searchedFlags, sortField, sortDirection]);
-  const handleSort = field => {
+  const handleSort = (field) => {
     if (sortField === field) {
-      setSortDirection(d => (d === "asc" ? "desc" : "asc"));
+      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
       setSortDirection("asc");
@@ -197,7 +195,7 @@ export default function App() {
         <input
           type="text"
           value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
+          onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search flags…"
           className="
             block w-full sm:w-1/3
@@ -242,7 +240,7 @@ export default function App() {
           error={error}
           onToggle={handleToggle}
           onRequestDelete={handleRequestDelete}
-          onRowClick={handleRowClick}
+          onOpenRowMenu={handleOpenRowMenu}
           sortField={sortField}
           sortDirection={sortDirection}
           onSort={handleSort}
@@ -287,14 +285,12 @@ export default function App() {
         />
       )}
 
-
       {/* Mobile Modal */}
       {mobileSelectedFlag && (
         <MobileFlagModal
           flag={mobileSelectedFlag}
           onClose={() => setMobileSelectedFlag(null)}
-          onToggle={handleToggle}
-          onDelete={async id => {
+          onDelete={async (id) => {
             await handleDelete(id);
             setMobileSelectedFlag(null);
           }}

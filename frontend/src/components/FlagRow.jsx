@@ -1,12 +1,14 @@
 // src/components/FlagRow.jsx
 import React, { useState } from "react";
 import { Switch } from "@headlessui/react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEllipsisV } from "@fortawesome/free-solid-svg-icons";
 
 export default function FlagRow({
   flag,
   onToggle,
   onRequestDelete,
-  onRowClick,
+  onOpenMenu,
   selected,   // boolean
   onSelect,   // fn toggles selection
 }) {
@@ -26,10 +28,15 @@ export default function FlagRow({
     onRequestDelete(flag);
   };
 
+  const handleMoreClick = (e) => {
+    e.stopPropagation();
+    onOpenMenu(flag);
+  };
+
   return (
-    <tr className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-      {/* bulk-select checkbox */}
-      <td className="px-4 py-3">
+    <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+      {/* bulk‐select */}
+      <td className="px-4 py-3 w-[55px]">
         <input
           type="checkbox"
           checked={selected}
@@ -41,9 +48,8 @@ export default function FlagRow({
         />
       </td>
 
-      {/* ─── NAME cell: truncate with responsive max-width ───────────── */}
+      {/* NAME */}
       <td
-        onClick={() => onRowClick(flag)}
         className="
           px-4 py-3
           text-sm text-gray-900 dark:text-gray-100
@@ -54,8 +60,8 @@ export default function FlagRow({
         {flag.name}
       </td>
 
-      {/* ─── STATUS cell with spinner ───────────────────────────────── */}
-      <td className="px-4 py-3 text-sm relative">
+      {/* STATUS */}
+      <td className="px-4 py-3 w-[50px] text-center text-sm relative">
         <div className="inline-block relative">
           <Switch
             checked={flag.enabled}
@@ -82,11 +88,11 @@ export default function FlagRow({
         </div>
       </td>
 
-      {/* ─── CREATED AT cell ─────────────────────────────────────────── */}
+      {/* CREATED AT (desktop only) */}
       <td
         className="
           px-4 py-3 text-sm text-gray-500 dark:text-gray-400
-          max-[450px]:hidden whitespace-nowrap
+          max-[450px]:hidden whitespace-nowrap w-[120px]
         "
       >
         {new Date(flag.created_at).toLocaleDateString("en-US", {
@@ -96,8 +102,8 @@ export default function FlagRow({
         })}
       </td>
 
-      {/* ─── DELETE cell ─────────────────────────────────────────────── */}
-      <td className="px-4 py-3 text-right text-sm max-[450px]:hidden">
+      {/* DELETE (desktop only) */}
+      <td className="px-4 py-3 text-right text-sm w-[55px] max-[450px]:hidden">
         <button
           onClick={handleDeleteClick}
           className="text-gray-400 hover:text-red-600 focus:outline-none"
@@ -117,6 +123,17 @@ export default function FlagRow({
               d="M6 7h12M9 7v-1a2 2 0 00-2-2H7a2 2 0 00-2 2v1m4 0v12m4-12v12m4-12v12M5 7h14l-1 14a2 2 0 01-2 2H8a2 2 0 01-2 2L5 7z"
             />
           </svg>
+        </button>
+      </td>
+
+      {/* MORE (mobile only) */}
+      <td className="hidden max-[450px]:table-cell px-4 py-3 text-right text-sm w-[40px]">
+        <button
+          onClick={handleMoreClick}
+          className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 focus:outline-none"
+          aria-label={`More actions for ${flag.name}`}
+        >
+          <FontAwesomeIcon icon={faEllipsisV} size="lg" />
         </button>
       </td>
     </tr>
