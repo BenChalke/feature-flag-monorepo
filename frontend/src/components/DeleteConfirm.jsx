@@ -1,7 +1,13 @@
 import React from "react";
 import ConfirmModal from "./ConfirmModal";
 
-export default function DeleteConfirm({ flagName, onCancel, onConfirm }) {
+// now accepts a `loading` prop too
+export default function DeleteConfirm({
+  flagName,
+  onCancel,
+  onConfirm,
+  loading = false,
+}) {
   return (
     <ConfirmModal
       title="Delete Feature Flag"
@@ -9,6 +15,7 @@ export default function DeleteConfirm({ flagName, onCancel, onConfirm }) {
       confirmText="Delete"
       onCancel={onCancel}
       onConfirm={onConfirm}
+      loading={loading}
     >
       <p>
         Are you sure you want to delete the flag{" "}

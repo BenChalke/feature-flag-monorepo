@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { fetcher } from "../api";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
 export default function FlagForm({ initialEnv, onClose, onCreated }) {
   const [name, setName] = useState("");
@@ -42,10 +44,15 @@ export default function FlagForm({ initialEnv, onClose, onCreated }) {
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xl transition-colors"
             aria-label="Close"
+            className="
+              text-gray-500 dark:text-gray-400
+              hover:text-gray-700 dark:hover:text-gray-200
+              text-2xl
+              transition-colors
+            "
           >
-            &times;
+            <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">

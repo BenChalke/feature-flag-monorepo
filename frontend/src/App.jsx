@@ -24,6 +24,7 @@ export default function App() {
   const [sortDirection, setSortDirection] = useState("asc");
   const [showForm, setShowForm] = useState(false);
   const [deletingFlag, setDeletingFlag] = useState(null);
+  const [deletingLoading, setDeletingLoading] = useState(false);
   const [mobileSelectedFlag, setMobileSelectedFlag] = useState(null);
 
   // bulk‐select state
@@ -270,13 +271,22 @@ export default function App() {
       {deletingFlag && (
         <DeleteConfirm
           flagName={deletingFlag.name}
-          onCancel={() => setDeletingFlag(null)}
+          loading={deletingLoading}
+          onCancel={() => {
+            if (!deletingLoading) setDeletingFlag(null);
+          }}
           onConfirm={async () => {
-            await handleDelete(deletingFlag.id);
-            setDeletingFlag(null);
+            setDeletingLoading(true);
+            try {
+              await handleDelete(deletingFlag.id);
+            } finally {
+              setDeletingLoading(false);
+              setDeletingFlag(null);
+            }
           }}
         />
       )}
+
 
       {/* Mobile Modal */}
       {mobileSelectedFlag && (

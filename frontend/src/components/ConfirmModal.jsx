@@ -7,6 +7,7 @@ export default function ConfirmModal({
   confirmText = "Confirm",
   onCancel,
   onConfirm,
+  loading = false,
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -28,9 +29,24 @@ export default function ConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+            disabled={loading}
+           className="relative flex items-center px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
           >
-            {confirmText}
+          {loading && (
+            <div
+              className="
+                absolute inset-0 
+                m-auto 
+                w-4 h-4 
+                border-2 border-white border-t-transparent 
+                rounded-full animate-spin
+              "
+              style={{ top: 0, bottom: 0, left: 0, right: 0 }}
+            />
+          )}
+            <span className={loading ? "opacity-0" : ""}>
+              {confirmText}
+            </span>
           </button>
         </div>
       </div>

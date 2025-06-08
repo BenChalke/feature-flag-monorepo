@@ -1,12 +1,15 @@
 // src/components/MobileFlagModal.jsx
 import React, { useEffect, useState } from "react";
 import { Switch } from "@headlessui/react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
 
 export default function MobileFlagModal({ flag, onClose, onToggle, onDelete }) {
-  // 1) Local `enabled` state, initialized from `flag.enabled`.
+  // local state
   const [enabled, setEnabled] = useState(flag?.enabled ?? false);
+  const [deleting, setDeleting] = useState(false);
 
-  // 2) Whenever `flag.enabled` changes from the parent, sync it into local `enabled`.
+  // sync prop → state
   useEffect(() => {
     if (flag) {
       setEnabled(flag.enabled);
@@ -15,23 +18,24 @@ export default function MobileFlagModal({ flag, onClose, onToggle, onDelete }) {
 
   if (!flag) return null;
 
-  // 3) When user clicks the switch, flip local state immediately (optimistic) 
-  //    then call `onToggle` to let parent/DB know.
   const handleToggle = async () => {
     const newValue = !enabled;
     setEnabled(newValue);
     try {
       await onToggle(flag.id, newValue);
-      // parent should eventually re‐fetch and ensure this flag really toggled.
     } catch (err) {
-      // If it fails, revert local state so UI stays correct.
-      setEnabled(enabled);
+      setEnabled(!newValue);
       console.error("Failed to toggle flag:", err);
     }
   };
 
   const handleDelete = async () => {
-    await onDelete(flag.id);
+    setDeleting(true);
+    try {
+      await onDelete(flag.id);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -44,10 +48,15 @@ export default function MobileFlagModal({ flag, onClose, onToggle, onDelete }) {
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xl transition-colors"
             aria-label="Close"
+            className="
+              text-gray-500 dark:text-gray-400
+              hover:text-gray-700 dark:hover:text-gray-200
+              text-2xl
+              transition-colors
+            "
           >
-            &times;
+            <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
 
@@ -90,9 +99,24 @@ export default function MobileFlagModal({ flag, onClose, onToggle, onDelete }) {
         {/* Delete Button */}
         <button
           onClick={handleDelete}
-          className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          disabled={deleting}
+          className={`
+            relative w-full px-4 py-2 bg-red-600 text-white rounded
+            hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+          `}
         >
-          Delete Flag
+          {deleting && (
+            <div
+              className="
+                absolute inset-0 m-auto
+                w-4 h-4
+                border-2 border-white border-t-transparent
+                rounded-full animate-spin
+              "
+              style={{ top: 0, bottom: 0, left: 0, right: 0 }}
+            />
+          )}
+          <span className={deleting ? "opacity-0" : ""}>Delete Flag</span>
         </button>
       </div>
     </div>

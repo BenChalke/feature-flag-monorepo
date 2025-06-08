@@ -1,22 +1,57 @@
 // src/components/Header.jsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCog } from "@fortawesome/free-solid-svg-icons";
-import ThemeToggle from "./ThemeToggle";
 import ConfirmModal from "./ConfirmModal";
 
 export default function Header() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const menuRef = useRef(null);
 
+  // ─── THEME LOGIC INLINED ───────────────────────────────────────
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return "light";
+    try {
+      const stored = localStorage.getItem("theme");
+      if (stored === "light" || stored === "dark") return stored;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    } catch {
+      return "light";
+    }
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "dark") root.classList.add("dark");
+    else root.classList.remove("dark");
+    try { localStorage.setItem("theme", theme); } catch {
+      console.log('');
+    }
+  }, [theme]);
+  const toggleTheme = () =>
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+
+  // ─── LOGOUT CONFIRM ────────────────────────────────────────────
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login", { replace: true });
   };
 
+  // ─── MOBILE MENU DROPDOWN ──────────────────────────────────────
+  const menuRef = useRef(null);
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        menuRef.current.open = false;
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
   const closeMenu = () => {
     if (menuRef.current) menuRef.current.open = false;
   };
@@ -28,51 +63,39 @@ export default function Header() {
           Feature Flag Manager
         </h1>
 
-        {/* Desktop ≥450px */}
-        <div className="flex items-center space-x-4 max-[450px]:hidden">
-          <ThemeToggle />
-          {token && (
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-            >
-              Log Out
-            </button>
-          )}
-        </div>
-
-        {/* Mobile ≤450px */}
-        <div className="max-[450px]:block hidden">
-          <details ref={menuRef} className="relative">
-            <summary className="list-none cursor-pointer p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-              <FontAwesomeIcon icon={faCog} className="text-gray-600 dark:text-gray-300 text-xl" />
-            </summary>
-            <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50">
-              <div className="flex flex-col divide-y divide-gray-200 dark:divide-gray-700">
+        {/* single cog menu on all screen sizes */}
+        <details ref={menuRef} className="relative">
+          <summary className="list-none cursor-pointer p-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-100">
+            <FontAwesomeIcon
+              icon={faCog}
+              className="text-gray-600 dark:text-gray-300 text-xl"
+            />
+          </summary>
+          <div className="absolute right-0 mt-2 w-44 bg-gray-800 dark:bg-white  rounded-md shadow-lg z-50">
+            <div className="flex flex-col divide-y divide-gray-700 dark:divide-gray-200">
+              <button
+                className="px-4 py-2 text-left text-gray-100 dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-100 rounded-md"
+                onClick={() => {
+                  toggleTheme();
+                  closeMenu();
+                }}
+              >
+                Toggle Theme
+              </button>
+              {token && (
                 <button
-                  className="px-4 py-2 text-left text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
                   onClick={() => {
-                    document.documentElement.classList.toggle("dark");
                     closeMenu();
+                    setShowLogoutConfirm(true);
                   }}
+                  className="px-4 py-2 text-left bg-red-500 text-white hover:bg-red-600 transition-colors rounded-b-md"
                 >
-                  Toggle Theme
+                  Log Out
                 </button>
-                {token && (
-                  <button
-                    onClick={() => {
-                      closeMenu();
-                      setShowLogoutConfirm(true);
-                    }}
-                    className="px-4 py-2 text-left bg-red-500 text-white hover:bg-red-600 transition-colors rounded-b-md"
-                  >
-                    Log Out
-                  </button>
-                )}
-              </div>
+              )}
             </div>
-          </details>
-        </div>
+          </div>
+        </details>
       </header>
 
       {showLogoutConfirm && (
