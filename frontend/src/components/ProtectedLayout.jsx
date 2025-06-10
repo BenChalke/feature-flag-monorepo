@@ -1,10 +1,13 @@
+// frontend/src/components/ProtectedLayout.jsx
 import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import useSessionValidator from "../hooks/useSessionValidator";
 import Layout from "./Layout";
 import SessionExpiredModal from "./SessionExpiredModal";
+import AppV2 from "./v2/AppV2";
 
-export default function ProtectedLayout() {
+
+export default function ProtectedLayout({ version, useV2 }) {
   const [expired, setExpired] = useState(false);
 
   // periodic session check
@@ -24,7 +27,13 @@ export default function ProtectedLayout() {
 
   return (
     <>
-      <Outlet />
+      {/* main content */}
+      {version === "v1" && !useV2 ? (
+        <Outlet />
+      ) : (
+        <>{useV2 ? <AppV2 /> : null}</>
+      )}
+
       {expired && <SessionExpiredModal onClose={handleClose} />}
     </>
   );
