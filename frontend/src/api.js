@@ -1,4 +1,4 @@
-// Custom Error subclass for clarity
+// src/api.js
 export class SessionExpiredError extends Error {
   constructor() {
     super("Session expired");
@@ -6,8 +6,6 @@ export class SessionExpiredError extends Error {
   }
 }
 
-// A simple fetcher that throws on non-OK responses,
-// auto-attaches your JWT, and fires a custom event on 401.
 export async function fetcher(url, options = {}) {
   const token = localStorage.getItem("token");
 
@@ -20,25 +18,31 @@ export async function fetcher(url, options = {}) {
   const res = await fetch(url, { ...options, headers, credentials: "omit" });
 
   if (res.status === 401) {
-    // clear stored token
     localStorage.removeItem("token");
-    // emit so React can show your modal
     window.dispatchEvent(new CustomEvent("session-expired"));
     throw new SessionExpiredError();
   }
 
+  const contentType = (res.headers?.get?.("content-type")) || "";
+
   if (!res.ok) {
     const err = new Error("An error occurred while fetching the data.");
-    try {
-      err.info = await res.json();
-    } catch {
-      /* ignore JSON parse failures */
+    if (contentType.includes("application/json")) {
+      try { err.info = await res.json(); } catch {
+        console.log('');
+      }
     }
     err.status = res.status;
     throw err;
   }
 
-  return res.json();
+  // Prefer JSON if available, else fallback to text
+  if (typeof res.json === "function") {
+    return res.json();
+  } else if (typeof res.text === "function") {
+    return res.text();
+  }
+  return;
 }
 
 export const API_BASE = import.meta.env.VITE_API_BASE;

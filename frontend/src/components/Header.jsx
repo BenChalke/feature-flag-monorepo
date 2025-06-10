@@ -1,10 +1,11 @@
+// frontend/src/components/v2/Header.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCog } from "@fortawesome/free-solid-svg-icons";
 import ConfirmModal from "./ConfirmModal";
 
-export default function Header() {
+export default function Header({ toggleVersion, version }) {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -25,8 +26,10 @@ export default function Header() {
     const root = document.documentElement;
     if (theme === "dark") root.classList.add("dark");
     else root.classList.remove("dark");
-    try { localStorage.setItem("theme", theme); } catch {
-      console.log('');
+    try {
+      localStorage.setItem("theme", theme);
+    } catch {
+      // ignore
     }
   }, [theme]);
   const toggleTheme = () =>
@@ -59,7 +62,6 @@ export default function Header() {
           Feature Flag Manager
         </h1>
 
-        {/* single cog menu on all screen sizes */}
         <details ref={menuRef} className="relative">
           <summary className="list-none cursor-pointer p-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-700">
             <FontAwesomeIcon
@@ -67,7 +69,7 @@ export default function Header() {
               className="text-gray-600 dark:text-gray-300 text-xl"
             />
           </summary>
-          <div className="absolute right-0 mt-2 w-44 bg-gray-800 dark:bg-white  rounded-md shadow-lg z-50">
+          <div className="absolute right-0 mt-2 w-44 bg-gray-800 dark:bg-white rounded-md shadow-lg z-50">
             <div className="flex flex-col divide-y divide-gray-700 dark:divide-gray-200">
               <button
                 className="px-4 py-2 text-left text-gray-100 dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-100 rounded-md"
@@ -77,6 +79,20 @@ export default function Header() {
                 }}
               >
                 Toggle Theme
+              </button>
+              <button
+                onClick={() => {
+                  toggleVersion();
+                  closeMenu();
+                }}
+                className="relative px-4 py-2 text-left text-gray-100 dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-100 rounded-md"
+              >
+                {version === "v1" ? "Switch to v2" : "Switch to v1"}
+                {version === "v1" && (
+                  <span className="absolute top-1 right-2 text-[10px] font-bold bg-yellow-400 text-black px-1 rounded">
+                    BETA
+                  </span>
+                )}
               </button>
               {token && (
                 <button

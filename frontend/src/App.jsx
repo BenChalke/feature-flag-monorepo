@@ -53,7 +53,8 @@ export default function App() {
   }, []);
 
   // re-fetch when WebSocket notifies
-  useAwsWebSocketFlags(loadFlags);
+  const handleRealtimeUpdate = useCallback(() => loadFlags(), [loadFlags]);
+  useAwsWebSocketFlags(handleRealtimeUpdate);
 
   // initial load
   useEffect(() => {

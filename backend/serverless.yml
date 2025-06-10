@@ -20,23 +20,17 @@ provider:
         - GET
         - POST
         - PATCH
+        - PUT
         - DELETE
         - OPTIONS
       allowCredentials: true
 
   environment:
-    # existing tables
     DYNAMODB_FLAGS_TABLE:        !Ref FlagsTable
     DYNAMODB_COUNTERS_TABLE:     !Ref CountersTable
     DYNAMODB_CONNECTIONS_TABLE:  !Ref ConnectionsTable
-
-    # new users table
     USERS_TABLE:                 !Ref UsersTable
-
-    # your original websocket endpoint
     WEBSOCKET_ENDPOINT:          !Sub "https://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
-
-    # JWT config for auth
     JWT_SECRET:                  ${env:JWT_SECRET}
     JWT_EXPIRY:                  "1h"
 
@@ -68,7 +62,6 @@ provider:
           Resource:
             - !GetAtt ConnectionsTable.Arn
 
-        # grant the auth lambdas read/write to your users table
         - Effect: Allow
           Action:
             - dynamodb:GetItem
@@ -106,6 +99,13 @@ functions:
           path: /flags/{id}
           method: patch
 
+  editFlag:
+    handler: handlers/editFlag.handler
+    events:
+      - httpApi:
+          path: /flags/{id}
+          method: put
+
   deleteFlag:
     handler: handlers/deleteFlag.handler
     events:
@@ -113,7 +113,7 @@ functions:
           path: /flags/{id}
           method: delete
 
-  # ─── Bulk Actions ────────────────────────────────────────────────────
+  # ─── Bulk Actions ───────────────────────────────────────────────────
   bulkDeleteFlags:
     handler: handlers/bulkDeleteFlags.handler
     events:
@@ -128,7 +128,7 @@ functions:
           path: /flags/bulk-update
           method: patch
 
-  # ─── Auth Endpoints ────────────────────────────────────────────────────
+  # ─── Auth Endpoints ───────────────────────────────────────────────────
   register:
     handler: handlers/auth/register.handler
     events:
@@ -198,7 +198,6 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
 
-    # new users table
     UsersTable:
       Type: AWS::DynamoDB::Table
       Properties:
